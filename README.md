@@ -26,6 +26,8 @@ terminal_app("claude")    # Claude Code
 terminal_app("codex", wd = "~/project")
 ```
 
+![A zsh session running in the terminal app](man/figures/shell.png)
+
 In your own app, use the module pair. The UI element sizes its rows and
 columns to its box; give it a height, or `height = NULL` to fill a fillable
 container.
@@ -92,6 +94,10 @@ terminal_app(claude_command(
 # Codex in workspace-write mode with network access
 terminal_app(codex_command(wd = "~/project", network = TRUE))
 ```
+
+![Claude Code running in its sandbox inside the terminal app](man/figures/claude.png)
+
+![Codex running in workspace-write mode inside the terminal app](man/figures/codex.png)
 
 `claude_command()` passes the sandbox as a `--settings` JSON argument (see the
 [Claude Code sandboxing docs](https://code.claude.com/docs/en/sandboxing) for

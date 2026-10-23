@@ -28,10 +28,11 @@ terminal_command = function(command, args = character(), wd = NULL) {
 }
 
 #' @export
-format.shinyterm_command = function(x, ..., max_width = 100) {
-  out = paste(c(x$command, x$args), collapse = " ")
-  if (nchar(out) > max_width) out = paste0(substr(out, 1, max_width - 1), "\u2026")
-  out
+format.shinyterm_command = function(x, ..., max_arg = 40) {
+  args = x$args
+  long = nchar(args) > max_arg
+  args[long] = paste0(substr(args[long], 1, max_arg - 1), "\u2026")
+  paste(c(x$command, args), collapse = " ")
 }
 
 #' @export

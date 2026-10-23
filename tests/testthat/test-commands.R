@@ -8,6 +8,8 @@ test_that("terminal_command and resolve_command combine parts", {
   expect_s3_class(cmd, "shinyterm_command")
   expect_equal(cmd$wd, path.expand("~"))
   expect_match(format(cmd), "^htop -d 5$")
+  long = terminal_command("x", c("-a", strrep("y", 60)))
+  expect_equal(nchar(format(long)), nchar("x -a ") + 40)
 
   r = resolve_command(cmd, args = "--tree")
   expect_equal(r$args, c("-d", "5", "--tree"))
