@@ -31,7 +31,6 @@
 >
 > You use this package entirely at your own risk.
 
-
 A terminal emulator for Shiny apps. `shinyterm` embeds an
 [xterm.js](https://xtermjs.org) terminal in the page and connects it to a
 local process running inside a pseudo-terminal (via
@@ -97,7 +96,10 @@ The terminal ships with a light and a dark palette. By default
 (`theme = "auto"`) it follows the page's Bootstrap colour mode, so adding
 `bslib::input_dark_mode()` to the UI (or calling `bslib::toggle_dark_mode()`
 on the server) switches the terminal live; `terminal_app()` includes the
-toggle in its header. Pages without a colour mode get the dark palette.
+toggle in its header and its `mode` argument picks the starting mode. Pages
+without a colour mode get the dark palette. Codex reads the terminal colours
+once at launch and keeps them, so `terminal_app("codex")` disables the
+toggle (with a tooltip saying why) and stays in its starting mode.
 `theme = "light"` or `theme = "dark"` fixes the palette, and colours in
 `options$theme` override individual entries of whichever palette is active:
 

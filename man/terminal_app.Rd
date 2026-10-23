@@ -8,7 +8,8 @@ terminal_app(
   command = default_shell(),
   args = character(),
   ...,
-  options = list()
+  options = list(),
+  mode = NULL
 )
 }
 \arguments{
@@ -22,6 +23,9 @@ given).}
 \item{...}{Passed on to \code{\link[=terminal_server]{terminal_server()}}.}
 
 \item{options}{Passed on to \code{\link[=terminal_ui]{terminal_ui()}}.}
+
+\item{mode}{Colour mode the app starts in, \code{"dark"} or \code{"light"}. \code{NULL}
+(the default) follows the browser's preference.}
 }
 \value{
 A \code{\link[shiny:shinyApp]{shiny::shinyApp()}} object.
@@ -33,11 +37,18 @@ badge and a light/dark mode toggle (\code{\link[bslib:input_dark_mode]{bslib::in
 terminal follows. Useful on its own and as a template for embedding a
 terminal in a larger app.
 }
+\details{
+Codex reads the terminal colours once at launch and keeps drawing its
+composer with them, so switching mode while it runs leaves the composer
+unreadable. When \code{command} is \code{codex} the toggle is therefore disabled,
+with a tooltip saying why, and the app stays in its starting mode; use
+\code{mode} to choose it.
+}
 \examples{
 if (interactive()) {
   terminal_app()
   terminal_app("claude")
-  terminal_app("codex", wd = "~/project")
+  terminal_app("codex", wd = "~/project", mode = "dark")
   terminal_app(claude_command(wd = "~/project", permission_mode = "acceptEdits"))
 }
 }

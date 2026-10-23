@@ -6,9 +6,17 @@
 #' terminal follows. Useful on its own and as a template for embedding a
 #' terminal in a larger app.
 #'
+#' Codex reads the terminal colours once at launch and keeps drawing its
+#' composer with them, so switching mode while it runs leaves the composer
+#' unreadable. When `command` is `codex` the toggle is therefore disabled,
+#' with a tooltip saying why, and the app stays in its starting mode; use
+#' `mode` to choose it.
+#'
 #' @inheritParams terminal_server
 #' @param ... Passed on to [terminal_server()].
 #' @param options Passed on to [terminal_ui()].
+#' @param mode Colour mode the app starts in, `"dark"` or `"light"`. `NULL`
+#'   (the default) follows the browser's preference.
 #'
 #' @return A [shiny::shinyApp()] object.
 #' @export
@@ -16,12 +24,33 @@
 #' if (interactive()) {
 #'   terminal_app()
 #'   terminal_app("claude")
-#'   terminal_app("codex", wd = "~/project")
+#'   terminal_app("codex", wd = "~/project", mode = "dark")
 #'   terminal_app(claude_command(wd = "~/project", permission_mode = "acceptEdits"))
 #' }
-terminal_app = function(command = default_shell(), args = character(), ..., options = list()) {
-  label = format(do.call(terminal_command, resolve_command(command, args)))
+terminal_app = function(
+  command = default_shell(),
+  args = character(),
+  ...,
+  options = list(),
+  mode = NULL
+) {
+  if (!is.null(mode)) mode = match.arg(mode, c("dark", "light"))
+  spec = resolve_command(command, args)
+  label = format(do.call(terminal_command, spec))
   server_args = list(...)
+
+  toggle = bslib::input_dark_mode(id = "dark_mode", mode = mode)
+  if (!mode_switchable(spec$command)) {
+    toggle = bslib::tooltip(
+      htmltools::span(
+        class = "shinyterm-mode-locked",
+        tabindex = "0",
+        htmltools::tagAppendAttributes(toggle, inert = NA, style = "opacity: 0.4")
+      ),
+      "Light/dark switching is disabled: codex does not support changing themes after launch.",
+      placement = "bottom"
+    )
+  }
 
   ui = bslib::page_fillable(
     title = "shinyterm",
@@ -33,7 +62,7 @@ terminal_app = function(command = default_shell(), args = character(), ..., opti
         shiny::uiOutput("status", inline = TRUE),
         htmltools::div(
           class = "ms-auto d-flex align-items-center gap-2",
-          bslib::input_dark_mode(id = "dark_mode"),
+          toggle,
           shiny::actionButton(
             "restart",
             "Restart",
@@ -68,6 +97,16 @@ terminal_app = function(command = default_shell(), args = character(), ..., opti
   }
 
   shiny::shinyApp(ui, server)
+}
+
+# Whether the page's colour mode may change while `command` runs. Codex reads
+# the terminal colours once at launch (OSC 10/11) and never again, so a later
+# switch leaves its composer drawn in the old mode's colours.
+#
+# command: program name or path
+
+mode_switchable = function(command) {
+  !grepl("^codex(\\.exe)?$", basename(command), ignore.case = TRUE)
 }
 
 # The user's interactive shell: $SHELL on unix, PowerShell on Windows.
