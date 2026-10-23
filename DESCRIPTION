@@ -1,0 +1,28 @@
+Package: shinyterm
+Title: Embed a Terminal Emulator in 'shiny' Apps
+Version: 0.0.0.9000
+Authors@R: 
+    person("Colin", "Rundel", , "rundel@gmail.com", role = c("aut", "cre"))
+Description: A 'shiny' module that embeds an 'xterm.js' terminal in an app and
+    connects it to a local process running inside a pseudo-terminal (via
+    'processx'). Keystrokes are forwarded to the process and its output is
+    streamed back to the browser, so interactive command line tools, including
+    shells and agent CLIs such as 'claude' or 'codex', can run inside a
+    'shiny' app.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports: 
+    bslib,
+    htmltools,
+    jsonlite,
+    later,
+    processx (>= 3.9.0),
+    shiny (>= 1.7.0)
+Suggests: 
+    shinytest2,
+    testthat (>= 3.0.0),
+    withr
+Config/testthat/edition: 3
+URL: https://github.com/rundel/shinyterm
+Config/roxygen2/version: 8.1.1

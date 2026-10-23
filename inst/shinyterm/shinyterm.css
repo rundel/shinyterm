@@ -1,0 +1,10 @@
+.shinyterm {
+  background: #1e1e1e;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.shinyterm .xterm {
+  height: 100%;
+}
