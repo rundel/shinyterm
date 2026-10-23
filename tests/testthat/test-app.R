@@ -86,11 +86,11 @@ test_that("a fixed theme ignores the page colour mode", {
 
 test_that("terminal_app validates mode and detects codex", {
   expect_error(terminal_app("cat", mode = "sepia"), "dark")
-  expect_true(mode_switchable("claude"))
-  expect_true(mode_switchable("/bin/bash"))
-  expect_false(mode_switchable("codex"))
-  expect_false(mode_switchable("/opt/homebrew/bin/codex"))
-  expect_false(mode_switchable("Codex.exe"))
+  expect_true(shinyterm:::mode_switchable("claude"))
+  expect_true(shinyterm:::mode_switchable("/bin/bash"))
+  expect_false(shinyterm:::mode_switchable("codex"))
+  expect_false(shinyterm:::mode_switchable("/opt/homebrew/bin/codex"))
+  expect_false(shinyterm:::mode_switchable("Codex.exe"))
 })
 
 test_that("terminal_app starts in the requested colour mode", {
