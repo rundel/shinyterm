@@ -1,5 +1,37 @@
 # shinyterm
 
+# ⚠️ STOP. READ THIS BEFORE GOING ANY FURTHER. ⚠️
+
+> ## THIS PACKAGE IS A TERRIBLE IDEA AND YOU PROBABLY SHOULD NOT USE IT.
+>
+> ### IT PUTS A SHELL IN A WEB PAGE.
+>
+> Whoever can open the app gets an interactive process running as the user
+> who started it, with that user's files, credentials, SSH keys, cloud tokens
+> and network access. Nothing in this package tries to stop them doing
+> anything that user can do.
+>
+> ### THE SECURITY IMPLICATIONS HAVE NOT BEEN THOUGHT ABOUT. AT ALL.
+>
+> There is no authentication, no authorization, no audit log, no isolation,
+> no rate limiting and no input sanitation, and none of it has been reviewed
+> by anyone who knows what they are doing. It was written as a prototype for
+> running agent CLIs on a laptop, for the laptop's owner, and that is the only
+> situation in which it is even arguably reasonable.
+>
+> ### DO NOT RUN IT ON A SERVER.
+>
+> Not on Shiny Server, not on Posit Connect, not on shinyapps.io, not behind
+> ShinyProxy, not on a cloud box, not on anything other people can reach.
+> The package checks for those situations and refuses to start. If you go
+> looking for a way around that check, you have been warned, in writing, in
+> capital letters, and every consequence is yours.
+>
+> ### IF YOU USE IT ANYWAY, YOU ARE ON YOUR OWN.
+>
+> You use this package entirely at your own risk.
+
+
 A terminal emulator for Shiny apps. `shinyterm` embeds an
 [xterm.js](https://xtermjs.org) terminal in the page and connects it to a
 local process running inside a pseudo-terminal (via
@@ -123,7 +155,9 @@ wraps any other program.
 - Output polling runs inside the Shiny session's event loop, so a very busy
   process competes with the rest of the app for the R process.
 - A terminal gives whoever can open the app a process on the server. Only
-  expose this to people you would give a shell account to.
+  expose this to people you would give a shell account to, which in practice
+  means yourself, on your own machine. See the warning at the top of this
+  file: hosted deployments and non-localhost clients are refused.
 - Requires processx 3.9.0 or later; on Windows, Windows 10 1809 or later.
 - The child inherits the app's environment minus Claude Code and IDE markers
   (see `strip_env`), so a `claude` started from an app launched inside Claude

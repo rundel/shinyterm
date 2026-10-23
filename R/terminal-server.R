@@ -12,6 +12,14 @@
 #' programs follow the browser window. Resizing after launch is not available
 #' on Windows.
 #'
+#' @section Hosted deployments:
+#' A terminal gives every visitor a process running as the app's user, so this
+#' module refuses to run where the app is served to other people: it aborts
+#' when it detects Shiny Server, Posit Connect, shinyapps.io, ShinyProxy or
+#' Hugging Face Spaces from the environment, or when the browser reached the
+#' app through a hostname other than localhost. The error it raises explains
+#' what you would have to do to override it, and why you should not.
+#'
 #' Output is polled on a [later::later()] timer rather than a reactive one, so
 #' an idle process does not keep the session busy; only arriving output
 #' touches the reactive graph (through `output()`).
@@ -68,6 +76,7 @@ terminal_server = function(
   strip_env = TRUE,
   max_output = 1e6
 ) {
+  check_not_hosted()
   spec = resolve_command(command, args, wd)
 
   shiny::moduleServer(id, function(input, output, session) {
@@ -154,6 +163,7 @@ terminal_server = function(
 
     start = function() {
       if (running()) return(invisible(FALSE))
+      check_not_hosted(shiny::isolate(session$clientData$url_hostname))
       size = shiny::isolate(input$term)
       if (!is.null(size)) {
         priv$rows = as.integer(size$rows)

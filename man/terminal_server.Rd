@@ -81,8 +81,18 @@ The process is sized to the terminal's rows and columns at launch and
 resized (with \code{SIGWINCH}) whenever the client's size changes, so full-screen
 programs follow the browser window. Resizing after launch is not available
 on Windows.
+}
+\section{Hosted deployments}{
+
+A terminal gives every visitor a process running as the app's user, so this
+module refuses to run where the app is served to other people: it aborts
+when it detects Shiny Server, Posit Connect, shinyapps.io, ShinyProxy or
+Hugging Face Spaces from the environment, or when the browser reached the
+app through a hostname other than localhost. The error it raises explains
+what you would have to do to override it, and why you should not.
 
 Output is polled on a \code{\link[later:later]{later::later()}} timer rather than a reactive one, so
 an idle process does not keep the session busy; only arriving output
 touches the reactive graph (through \code{output()}).
 }
+

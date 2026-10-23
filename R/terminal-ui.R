@@ -31,6 +31,7 @@ terminal_ui = function(
   theme = c("auto", "dark", "light"),
   ...
 ) {
+  check_not_hosted()
   ns = shiny::NS(id)
   theme = match.arg(theme)
 
