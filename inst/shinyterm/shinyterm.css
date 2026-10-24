@@ -8,3 +8,17 @@
 .shinyterm .xterm {
   height: 100%;
 }
+
+.shinyterm-status {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--bs-secondary-color, #6c757d);
+  opacity: 0.6;
+}
+
+.shinyterm-status-running {
+  background: var(--bs-success, #198754);
+  opacity: 1;
+}

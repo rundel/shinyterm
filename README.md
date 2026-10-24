@@ -90,6 +90,51 @@ raw output transcript). Its `strip_env` argument (on by default) keeps Claude
 Code and IDE markers out of the child environment; pass `FALSE` to inherit
 everything or a regular expression to choose what to drop.
 
+### Multiple terminals in tabs
+
+`terminal_tabs_app()` and the `terminal_tabs_ui()` / `terminal_tabs_server()`
+module pair put any number of terminals in tabs, built on the
+[shinytabs](https://github.com/rundel/shinytabs) package. The "+" button
+starts a new terminal, choosing from the `commands` the app offers; tabs can
+be closed (with a confirmation while their process is still running), dragged
+into a new order and renamed, and a dot before each title shows whether its
+process is running. By default the commands are the user's shell plus
+`claude` and `codex` when they are on the `PATH`.
+
+```r
+terminal_tabs_app()
+
+terminal_tabs_app(list(
+  Shell = Sys.getenv("SHELL"),
+  Claude = claude_command(wd = "~/project", permission_mode = "acceptEdits"),
+  Codex = codex_command(wd = "~/project", sandbox = "read-only")
+))
+```
+
+![Three commands offered in the tabs app's + menu](man/figures/tabs.png)
+
+In your own app the module takes the same `commands`, and the usual
+`terminal_server()` arguments apply to every terminal. The returned controls
+open, close and select tabs from the server and give access to each tab's
+`terminal_server()` controls:
+
+```r
+ui = bslib::page_fillable(terminal_tabs_ui("terms"))
+
+server = function(input, output, session) {
+  terms = terminal_tabs_server(
+    "terms",
+    commands = list(Shell = "zsh", Claude = claude_command(wd = "~/project")),
+    initial = "Shell"
+  )
+
+  observe({
+    id = terms$add("Claude")
+    terms$terminal(id)$write("Summarise this repository\r")
+  }) |> bindEvent(input$go)
+}
+```
+
 ### Light and dark mode
 
 The terminal ships with a light and a dark palette. By default

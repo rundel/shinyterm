@@ -39,18 +39,7 @@ terminal_app = function(
   label = format(do.call(terminal_command, spec))
   server_args = list(...)
 
-  toggle = bslib::input_dark_mode(id = "dark_mode", mode = mode)
-  if (!mode_switchable(spec$command)) {
-    toggle = bslib::tooltip(
-      htmltools::span(
-        class = "shinyterm-mode-locked",
-        tabindex = "0",
-        htmltools::tagAppendAttributes(toggle, inert = NA, style = "opacity: 0.4")
-      ),
-      "Light/dark switching is disabled: codex does not support changing themes after launch.",
-      placement = "bottom"
-    )
-  }
+  toggle = mode_toggle(mode, locked = !mode_switchable(spec$command))
 
   ui = bslib::page_fillable(
     title = "shinyterm",
@@ -97,6 +86,26 @@ terminal_app = function(
   }
 
   shiny::shinyApp(ui, server)
+}
+
+# The light/dark mode toggle of the app wrappers, disabled (inert, dimmed,
+# with a tooltip saying why) when the colour mode must not change.
+#
+# mode: the starting mode, or NULL for the browser's preference
+# locked: whether switching is disabled
+
+mode_toggle = function(mode, locked = FALSE) {
+  toggle = bslib::input_dark_mode(id = "dark_mode", mode = mode)
+  if (!locked) return(toggle)
+  bslib::tooltip(
+    htmltools::span(
+      class = "shinyterm-mode-locked",
+      tabindex = "0",
+      htmltools::tagAppendAttributes(toggle, inert = NA, style = "opacity: 0.4")
+    ),
+    "Light/dark switching is disabled: codex does not support changing themes after launch.",
+    placement = "bottom"
+  )
 }
 
 # Whether the page's colour mode may change while `command` runs. Codex reads

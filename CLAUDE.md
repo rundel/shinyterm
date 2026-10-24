@@ -18,7 +18,7 @@ Rscript -e 'devtools::check()'                    # full R CMD check
 Rscript -e 'devtools::load_all(); terminal_app()' # try the app interactively (your $SHELL)
 ```
 
-Tests in `test-app.R` drive a real browser through `shinytest2`/`chromote` and are skipped on CRAN, on Windows, or when those packages are missing. `test-server.R` uses `shiny::testServer()` and advances the `later` polling loop by hand with a local `tick()` helper (sleep, then `later::run_now()`), because output polling happens outside the reactive graph.
+Tests in `test-app.R` and `test-tabs-app.R` drive a real browser through `shinytest2`/`chromote` and are skipped on CRAN, on Windows, or when those packages are missing. They run the app in a child R process that uses the *installed* shinyterm and shinytabs for static resources, so reinstall both (`devtools::install()` in each) after changing anything under `inst/` or the shinytabs server before trusting a browser-test result. `test-server.R` uses `shiny::testServer()` and advances the `later` polling loop by hand with a local `tick()` helper (sleep, then `later::run_now()`), because output polling happens outside the reactive graph.
 
 `NAMESPACE` and `man/` are roxygen output. Edit the roxygen comments in `R/` and rerun `document()`; never edit them by hand.
 
@@ -43,6 +43,10 @@ Colour palettes (light/dark) live in this file. With `data-theme="auto"` a `Muta
 ### Resize: `R/pty.R` and `src/resize.c`
 
 On unix the pty is resized live with `TIOCSWINSZ` on the master fd (obtained from processx's output connection), which delivers `SIGWINCH` to the child. The C function returns `FALSE` on Windows, where the only option is `restart()`.
+
+### Tabbed terminals: `R/terminal-tabs.R`
+
+`terminal_tabs_ui()` / `terminal_tabs_server()` put one `terminal_server()` per tab inside a `shinytabs::tabset_server()` (the sister package in `../shinytabs`, declared in `Imports` with a `Remotes` entry). Each tab is a module instance named `tabN` under the tabset's `"tabs"` namespace, and the terminal module inside it is called `"term"`, so a terminal element's id is `<id>-tabs-tabN-term-term`; the tests depend on that. `commands` is normalised by `terminal_commands()` to a named list of `shinyterm_command`s whose labels double as the tabset's type keys. The tab-server callback uses shinytabs' optional fifth `tab` argument to learn its tab id, keeps a per-tab observer that sets the status-dot icon from `alive()`, and `on_close` destroys that observer and kills the process. `can_close` returns a confirmation message while the process is alive, which shinytabs turns into a modal. `terminal_tabs_app()` shares `mode_toggle()` with `terminal_app()` and locks the toggle when any command is codex.
 
 ### Command specifications: `R/commands.R`
 

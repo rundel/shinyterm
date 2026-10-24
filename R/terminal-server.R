@@ -56,6 +56,7 @@
 #'     tree) or relaunch the process. `restart()` also clears the terminal.}
 #'   \item{`write(text)`}{Write `text` to the process as if typed, e.g. to send
 #'     a prompt. Include `"\n"` (or `"\r"` for TUIs) to submit it.}
+#'   \item{`focus()`}{Give the terminal keyboard focus in the browser.}
 #'   \item{`alive()`}{Reactive logical: whether the process is running.}
 #'   \item{`exit_status()`}{Reactive: the last exit status, `NULL` while
 #'     running or before the first launch.}
@@ -252,6 +253,7 @@ terminal_server = function(
       kill = kill,
       restart = restart,
       write = write_text,
+      focus = function() send(focus = TRUE),
       alive = shiny::reactive(state$alive),
       exit_status = shiny::reactive(state$exit_status),
       size = shiny::reactive({

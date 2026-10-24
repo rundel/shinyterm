@@ -60,6 +60,7 @@ A list of controls and reactives:
 tree) or relaunch the process. \code{restart()} also clears the terminal.}
 \item{\code{write(text)}}{Write \code{text} to the process as if typed, e.g. to send
 a prompt. Include \code{"\\n"} (or \code{"\\r"} for TUIs) to submit it.}
+\item{\code{focus()}}{Give the terminal keyboard focus in the browser.}
 \item{\code{alive()}}{Reactive logical: whether the process is running.}
 \item{\code{exit_status()}}{Reactive: the last exit status, \code{NULL} while
 running or before the first launch.}
