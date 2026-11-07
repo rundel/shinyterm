@@ -131,10 +131,6 @@ which can reach a localhost port directly. A \code{token} closes that gap: the
 process then only starts for a page whose URL carries
 \verb{?shinyterm_token=<token>}. \code{\link[=terminal_app]{terminal_app()}} and \code{\link[=terminal_tabs_app]{terminal_tabs_app()}} make
 a random token by default and open the browser at the tokenized URL.
-
-Output is polled on a \code{\link[later:later]{later::later()}} timer rather than a reactive one, so
-an idle process does not keep the session busy; only arriving output
-touches the reactive graph (through \code{output()}).
 }
 
 \examples{

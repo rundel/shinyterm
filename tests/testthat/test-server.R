@@ -121,3 +121,30 @@ test_that("a page without the token gets no process", {
     expect_null(priv$proc)
   })
 })
+
+test_that("output reading stops while the browser is behind", {
+  skip_on_cran()
+  skip_on_os("windows")
+
+  shiny::testServer(
+    terminal_server,
+    args = list(command = "sh", args = c("-c", "yes 0123456789 | head -c 3000000; sleep 30")),
+    {
+      session$setInputs(term = list(rows = 24, cols = 80, seq = 0), term_written = 0)
+      for (i in 1:50) {
+        if (priv$sent >= max_unrendered) break
+        tick(session, 1)
+      }
+      expect_gte(priv$sent, max_unrendered)
+      expect_lte(priv$sent, max_unrendered + 65536)
+      stalled = priv$sent
+      tick(session, 3)
+      expect_equal(priv$sent, stalled)
+
+      session$setInputs(term_written = stalled)
+      tick(session, 3)
+      expect_gt(priv$sent, stalled)
+      kill()
+    }
+  )
+})

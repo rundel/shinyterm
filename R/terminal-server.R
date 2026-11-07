@@ -30,9 +30,14 @@
 #' `?shinyterm_token=<token>`. [terminal_app()] and [terminal_tabs_app()] make
 #' a random token by default and open the browser at the tokenized URL.
 #'
+#' @section Output:
 #' Output is polled on a [later::later()] timer rather than a reactive one, so
 #' an idle process does not keep the session busy; only arriving output
-#' touches the reactive graph (through `output()`).
+#' touches the reactive graph (through `output()`). The browser reports how
+#' much output it has rendered, and reading stops while it is too far behind
+#' (the process then blocks on its writes, as in a slow terminal), so a
+#' process printing faster than the browser can draw cannot flood the
+#' connection.
 #'
 #' @param id Module id, matching the `id` passed to [terminal_ui()].
 #' @param command Program to run, as for [processx::process], or a
@@ -101,6 +106,7 @@ terminal_server = function(
     priv$next_index = 0L
     priv$unwritten = raw(0)
     priv$output = ""
+    priv$sent = 0
     priv$rows = 24L
     priv$cols = 80L
 
@@ -114,26 +120,39 @@ terminal_server = function(
       !is.null(priv$proc) && priv$proc$is_alive()
     }
 
-    emit = function(chunk) {
-      send(write = chunk)
-      priv$output = paste0(priv$output, chunk)
-      n = nchar(priv$output)
-      if (n > max_output) {
-        priv$output = substr(priv$output, n - max_output + 1L, n)
-      }
+    emit = function(text) {
+      n = nchar(text)
+      priv$sent = priv$sent + n
+      send(write = text, n = n)
+      priv$output = tail_chars(paste0(priv$output, text), max_output)
       state$output = priv$output
     }
 
-    # Reads whatever the process has written, a bounded number of chunks per
-    # call so a flood of output cannot starve the event loop.
-    drain = function(max_chunks = 64L) {
+    # How many more characters may be sent before the browser must catch up;
+    # unlimited until the client first reports what it has rendered.
+    budget = function() {
+      written = shiny::isolate(input$term_written)
+      if (is.null(written)) return(Inf)
+      max_unrendered - (priv$sent - written)
+    }
+
+    # Reads what the process has written, a bounded number of chunks per
+    # call so a flood of output cannot starve the event loop, and sends it as
+    # one message. `all` ignores the flow control window (for an exited
+    # process, whose remaining output is bounded by the pty buffer).
+    drain = function(max_chunks = 64L, all = FALSE) {
+      left = if (all) Inf else budget()
+      out = character()
       for (i in seq_len(max_chunks)) {
+        if (left <= 0) break
         status = priv$proc$poll_io(0)
         if (!identical(status[["output"]], "ready")) break
         chunk = priv$proc$read_output()
         if (!nzchar(chunk)) break
-        emit(chunk)
+        out = c(out, chunk)
+        left = left - nchar(chunk)
       }
+      if (length(out)) emit(paste(out, collapse = ""))
     }
 
     flush_input = function() {
@@ -143,7 +162,7 @@ terminal_server = function(
 
     finish = function() {
       if (is.null(priv$proc)) return(invisible())
-      drain()
+      drain(all = TRUE)
       status = priv$proc$get_exit_status()
       if (is.null(status)) status = NA_integer_
       priv$proc = NULL
@@ -288,6 +307,18 @@ terminal_server = function(
       output = shiny::reactive(state$output)
     )
   })
+}
+
+# Characters of output sent to a client but not yet rendered there beyond
+# which the server stops reading the process's output.
+
+max_unrendered = 262144
+
+# The last `n` characters of `x`.
+
+tail_chars = function(x, n) {
+  len = nchar(x)
+  if (len <= n) x else substr(x, len - n + 1L, len)
 }
 
 # Environment for the child process: the current environment minus the

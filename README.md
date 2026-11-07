@@ -214,6 +214,7 @@ wraps any other program.
   `interval` milliseconds (50 by default) on a `later::later()` timer, outside
   the reactive graph, and pushes output to the client with
   `sendCustomMessage()`. An idle process therefore never marks the session busy.
+- The browser reports how much output it has rendered, and the server stops reading while it is too far behind, so a process that prints faster than the browser can draw blocks on its writes (as in a slow terminal) instead of flooding the connection.
 
 ## Limitations
 

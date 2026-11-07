@@ -25,6 +25,12 @@ for (emulator in c("ghostterm", "xterm")) test_that(paste("terminal_app relays t
     emulator
   )
 
+  # Rendered output is reported back for flow control
+  app$wait_for_js(
+    "(st => st.written > 0 && st.reported === st.written)(document.getElementById('term-term')._shinyterm)",
+    timeout = 5000
+  )
+
   app$click("restart")
   app$wait_for_js(
     "document.getElementById('term-term')._shinyterm.term.buffer.active.getLine(0).translateToString(true) === ''",
@@ -177,4 +183,24 @@ test_that("terminal_app only starts the process for a page with the token", {
     paste0(term, ".buffer.active.getLine(1).translateToString(true) === 'ok'"),
     timeout = 5000
   )
+})
+
+test_that("a flood of output reaches the browser in full", {
+  skip_on_cran()
+  skip_on_os("windows")
+  skip_if_not_installed("shinytest2")
+  skip_if_not_installed("chromote")
+
+  cmd = terminal_command("sh", c("-c", "yes 0123456789 | head -n 400000; echo DONE; sleep 30"))
+  app = shinytest2::AppDriver$new(terminal_app(cmd, token = FALSE), name = "flood", timeout = 10000)
+  on.exit(app$stop(), add = TRUE)
+
+  st = "document.getElementById('term-term')._shinyterm"
+  app$wait_for_js(paste(st, ".term != null"))
+  app$wait_for_js(paste0(st, ".written >= 400000 * 11 + 4"), timeout = 60000)
+  app$wait_for_js(
+    paste0("(t => [0, 1, 2].some(i => t.buffer.active.getLine(t.buffer.active.cursorY + t.buffer.active.baseY - i)?.translateToString(true) === 'DONE'))(", st, ".term)"),
+    timeout = 10000
+  )
+  expect_equal(app$get_text("#status .badge"), "running")
 })

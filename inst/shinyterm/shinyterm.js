@@ -4,9 +4,13 @@
 // sent separately as <id>_data events carrying the chunks the server has not
 // acknowledged yet (up to a size cap, the rest following each ack), indexed
 // from `from`, so chunks coalesced by Shiny's input batching are never lost
-// and chunks re-sent before an ack are never written twice. The server talks back with messages carrying any of:
-// write (text to print), ack (last chunk index consumed), clear, focus and
-// stdin (enable/disable keyboard input). The server sends them as "shinyterm"
+// and chunks re-sent before an ack are never written twice. The server talks
+// back with messages carrying any of: write (text to print) with n (its
+// length as the server counts it), ack (last chunk index consumed), clear,
+// focus and stdin (enable/disable keyboard input). Once a write has been
+// rendered its n is added to a running total reported as <id>_written, which
+// the server uses to stop reading output while the browser is too far
+// behind. The server sends them as "shinyterm"
 // custom messages carrying the element id, so output can be pushed from
 // outside a reactive flush; receiveMessage() also serves sendInputMessage().
 //
@@ -119,6 +123,11 @@
   // than one chunk is split into pieces of this size first.
   var SEND_CAP = 16384;
 
+  // A rendered-output total is reported once it is this far ahead of the
+  // last report, or shortly after output stops.
+  var WRITTEN_STEP = 16384;
+  var WRITTEN_DELAY = 50;
+
   function sendChunks(st) {
     var chunks = [];
     var size = 0;
@@ -151,6 +160,27 @@
     return out;
   }
 
+  function reportWritten(st) {
+    if (st.writtenTimer) {
+      clearTimeout(st.writtenTimer);
+      st.writtenTimer = null;
+    }
+    st.reported = st.written;
+    Shiny.setInputValue(st.id + "_written", st.written, { priority: "event" });
+  }
+
+  function wrote(st, n) {
+    st.written += n;
+    if (st.written - st.reported >= WRITTEN_STEP) {
+      reportWritten(st);
+    } else if (!st.writtenTimer) {
+      st.writtenTimer = setTimeout(function () {
+        st.writtenTimer = null;
+        reportWritten(st);
+      }, WRITTEN_DELAY);
+    }
+  }
+
   // Shows why the terminal could not be created in place of the terminal.
   function showError(el, text) {
     var box = document.createElement("div");
@@ -166,6 +196,7 @@
     if (!st) return;
     st.disposed = true;
     if (st.fitTimer) clearTimeout(st.fitTimer);
+    if (st.writtenTimer) clearTimeout(st.writtenTimer);
     if (st.observer) st.observer.disconnect();
     if (st.themeObserver) st.themeObserver.disconnect();
     if (st.term) {
@@ -203,6 +234,9 @@
         from: 0,
         sentTo: 0,
         chunks: [],
+        written: 0,
+        reported: 0,
+        writtenTimer: null,
         pending: [],
         rows: null,
         cols: null,
@@ -262,7 +296,16 @@
         st.pending.push(msg);
         return;
       }
-      if (msg.write != null) st.term.write(msg.write);
+      if (msg.write != null) {
+        if (msg.n != null) {
+          var n = msg.n;
+          st.term.write(msg.write, function () {
+            if (!st.disposed) wrote(st, n);
+          });
+        } else {
+          st.term.write(msg.write);
+        }
+      }
       if (msg.ack != null) {
         var drop = msg.ack - st.from + 1;
         if (drop > 0) {
