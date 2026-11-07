@@ -28,7 +28,8 @@ terminal_tabs_app(
   initial = 1,
   options = list(),
   emulator = c("ghostterm", "xterm"),
-  mode = NULL
+  mode = NULL,
+  token = TRUE
 )
 }
 \arguments{
@@ -61,6 +62,10 @@ running. With \code{FALSE} the process is killed without confirmation.}
 
 \item{mode}{Color mode the app starts in, \code{"dark"} or \code{"light"}. \code{NULL}
 (the default) follows the browser's preference.}
+
+\item{token}{\code{TRUE} (the default) protects the app with a new random
+access token, a string uses that token, and \code{FALSE} turns the protection
+off.}
 }
 \value{
 \code{terminal_tabs_ui()} returns an HTML tag list.
@@ -93,7 +98,8 @@ whether its process is running.
 
 \code{terminal_tabs_app()} wraps the module in a one-page app, like
 \code{\link[=terminal_app]{terminal_app()}}: a full-window tabset with a restart button for the
-selected tab and a light/dark mode toggle, which is disabled when any of
+selected tab and a light/dark mode toggle, protected by an access token
+as \code{\link[=terminal_app]{terminal_app()}} is. The toggle is disabled when any of
 the commands is \code{codex} or has \code{fixed_colors = TRUE} (see \code{\link[=terminal_app]{terminal_app()}}
 for why).
 }
@@ -112,9 +118,19 @@ rather than of the UI function.
 A terminal gives every visitor a process running as the app's user, so this
 module refuses to run where the app is served to other people: it aborts
 when it detects Shiny Server, Posit Connect, shinyapps.io, ShinyProxy or
-Hugging Face Spaces from the environment, or when the browser reached the
-app through a hostname other than localhost. The error it raises explains
-what you would have to do to override it, and why you should not.
+Hugging Face Spaces from the environment, when the browser reached the
+app through a hostname other than localhost, or when the connection comes
+from a page on another site (a web page you visit trying to reach the app
+on your machine). The hostname and site are read from the \code{Host} and
+\code{Origin} headers of the session's WebSocket request, which a browser
+cannot forge. The error it raises explains what you would have to do to
+override it, and why you should not.
+
+Those checks do not stop other programs or users on the same machine,
+which can reach a localhost port directly. A \code{token} closes that gap: the
+process then only starts for a page whose URL carries
+\verb{?shinyterm_token=<token>}. \code{\link[=terminal_app]{terminal_app()}} and \code{\link[=terminal_tabs_app]{terminal_tabs_app()}} make
+a random token by default and open the browser at the tokenized URL.
 
 Output is polled on a \code{\link[later:later]{later::later()}} timer rather than a reactive one, so
 an idle process does not keep the session busy; only arriving output

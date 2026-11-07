@@ -61,6 +61,8 @@ terminal_app("codex", wd = "~/project")
 
 ![A zsh session running in the terminal app](man/figures/shell.png)
 
+The apps are protected by a random access token: they open the browser at a URL ending in `?shinyterm_token=...` and print the token, and a page opened without it gets no process. Pass `token = FALSE` to turn that off.
+
 In your own app, use the module pair. The UI element sizes its rows and
 columns to its box; give it a height, or `height = NULL` to fill a fillable
 container.
@@ -91,6 +93,8 @@ plus the reactives `alive()`, `exit_status()`, `size()` and `output()` (the
 raw output transcript). Its `strip_env` argument (on by default) keeps Claude
 Code and IDE markers out of the child environment; pass `FALSE` to inherit
 everything or a regular expression to choose what to drop.
+
+A module in your own app has no access token unless you give it one with `token = "..."` and open the app at a URL ending in `?shinyterm_token=...`.
 
 ### Multiple terminals in tabs
 
@@ -221,7 +225,7 @@ wraps any other program.
 - A terminal gives whoever can open the app a process on the server. Only
   expose this to people you would give a shell account to, which in practice
   means yourself, on your own machine. See the warning at the top of this
-  file: hosted deployments and non-localhost clients are refused.
+  file: hosted deployments and non-localhost clients are refused, as are connections from pages on other sites (any web page you visit can try to reach an app on localhost; the `Origin` header of the connection gives it away). Other programs and users on the same machine can reach the port directly, which only the access token keeps out.
 - Requires processx 3.9.0 or later; on Windows, Windows 10 1809 or later.
 - The child inherits the app's environment minus Claude Code and IDE markers
   (see `strip_env`), so a `claude` started from an app launched inside Claude

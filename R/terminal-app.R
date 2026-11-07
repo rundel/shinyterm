@@ -13,8 +13,16 @@
 #' therefore disabled, with a tooltip saying why, and the app stays in its
 #' starting mode; use `mode` to choose it.
 #'
+#' The app is protected by an access token (see "Hosted deployments" in
+#' [terminal_server()]): it opens the browser, or the IDE's viewer, at a URL
+#' ending in `?shinyterm_token=<token>` and prints the token, and a page
+#' opened without it gets no process.
+#'
 #' @inheritParams terminal_server
 #' @param ... Passed on to [terminal_server()].
+#' @param token `TRUE` (the default) protects the app with a new random
+#'   access token, a string uses that token, and `FALSE` turns the protection
+#'   off.
 #' @param options,emulator Passed on to [terminal_ui()].
 #' @param mode Color mode the app starts in, `"dark"` or `"light"`. `NULL`
 #'   (the default) follows the browser's preference.
@@ -34,13 +42,15 @@ terminal_app = function(
   ...,
   options = list(),
   emulator = c("ghostterm", "xterm"),
-  mode = NULL
+  mode = NULL,
+  token = TRUE
 ) {
   if (!is.null(mode)) mode = match.arg(mode, c("dark", "light"))
   emulator = match.arg(emulator)
   spec = resolve_command(command, args)
   label = format(do.call(terminal_command, spec))
-  server_args = list(...)
+  token = resolve_token(token)
+  server_args = c(list(...), list(token = token))
 
   toggle = mode_toggle(mode, locked = !mode_switchable(spec))
 
@@ -88,7 +98,24 @@ terminal_app = function(
       shiny::bindEvent(input$restart)
   }
 
-  shiny::shinyApp(ui, server)
+  token_app(ui, server, token)
+}
+
+# shinyApp() for the app wrappers: with a token, the browser opens at the
+# tokenized URL and the token is printed when the app starts.
+#
+# token: the access token, or NULL
+
+token_app = function(ui, server, token) {
+  if (is.null(token)) return(shiny::shinyApp(ui, server))
+  shiny::shinyApp(
+    ui,
+    server,
+    onStart = function() {
+      message("shinyterm: the app URL needs ?", token_param, "=", token)
+    },
+    options = token_app_options(token)
+  )
 }
 
 # The light/dark mode toggle of the app wrappers, disabled (inert, dimmed,

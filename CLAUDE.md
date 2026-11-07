@@ -44,6 +44,8 @@ Color palettes (light/dark) live in this file. With `data-theme="auto"` a `Mutat
 
 `terminal_server()` starts `processx::process$new(pty = TRUE)` sized to the client's reported rows/cols. Output is polled on a `later::later()` timer (`interval` ms, default 50) rather than a reactive timer, so an idle process never marks the session busy. A generation counter (`priv$loop`) retires an old polling loop when `restart()` replaces the process. Per-session mutable state lives in a `priv` environment; only `alive`, `exit_status` and `output` are exposed through `reactiveValues`.
 
+Before starting, `start()` calls `check_not_hosted()` with the `Host` and `Origin` headers of the session's WebSocket request (`request_headers()`; never `clientData`, which the client reports itself and can forge), then checks the optional `token` against `?shinyterm_token=` in the page URL. The app wrappers make a token with `new_token()` (OS random bytes from `src/resize.c`, so `set.seed()` cannot predict it) and open the browser at the tokenized URL through `shinyApp(options = list(launch.browser = ...))`; browser tests pass `token = FALSE` because AppDriver cannot add a query string.
+
 `terminal_env()` builds the child's environment explicitly (no `"current"` marker) so inherited variables can be removed. By default it strips `CLAUDE*`, `VSCODE_*`, `POSITRON*`, `RSTUDIO*` and `TERM_PROGRAM`, which otherwise make a nested `claude` think it is a child session or inside an IDE.
 
 ### Resize: `R/pty.R` and `src/resize.c`

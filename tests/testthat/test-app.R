@@ -5,7 +5,7 @@ for (emulator in c("ghostterm", "xterm")) test_that(paste("terminal_app relays t
   skip_if_not_installed("chromote")
 
   app = shinytest2::AppDriver$new(
-    terminal_app("cat", emulator = emulator),
+    terminal_app("cat", emulator = emulator, token = FALSE),
     name = paste0("cat-", emulator),
     timeout = 10000
   )
@@ -40,7 +40,7 @@ test_that("terminal_app follows the page color mode", {
   skip_if_not_installed("chromote")
 
   app = shinytest2::AppDriver$new(
-    terminal_app("cat"),
+    terminal_app("cat", token = FALSE),
     name = "theme",
     timeout = 10000
   )
@@ -107,7 +107,7 @@ test_that("terminal_app starts in the requested color mode", {
   skip_if_not_installed("chromote")
 
   app = shinytest2::AppDriver$new(
-    terminal_app("cat", mode = "dark"),
+    terminal_app("cat", mode = "dark", token = FALSE),
     name = "mode",
     timeout = 10000
   )
@@ -127,7 +127,7 @@ test_that("terminal_app disables the mode toggle for codex", {
   skip_if_not_installed("chromote")
 
   app = shinytest2::AppDriver$new(
-    terminal_app(terminal_command("cat", command = "codex"), mode = "light"),
+    terminal_app(terminal_command("cat", command = "codex"), mode = "light", token = FALSE),
     name = "codex-mode",
     timeout = 10000
   )
@@ -145,4 +145,36 @@ test_that("terminal_app disables the mode toggle for codex", {
   app$click(selector = "#dark_mode")
   Sys.sleep(0.5)
   expect_equal(app$get_js("document.documentElement.dataset.bsTheme"), "light")
+})
+
+test_that("terminal_app only starts the process for a page with the token", {
+  skip_on_cran()
+  skip_on_os("windows")
+  skip_if_not_installed("shinytest2")
+  skip_if_not_installed("chromote")
+
+  app = shinytest2::AppDriver$new(
+    terminal_app("cat", token = "s3cret"),
+    name = "token",
+    timeout = 10000
+  )
+  on.exit(app$stop(), add = TRUE)
+
+  term = "document.getElementById('term-term')._shinyterm.term"
+  app$wait_for_js(paste(term, "!= null"))
+  app$wait_for_js(
+    paste0(term, ".buffer.active.getLine(1).translateToString(true).includes('needs the access token')"),
+    timeout = 5000
+  )
+  expect_match(app$get_text("#status .badge"), "exited")
+
+  app$run_js("location.search = '?shinyterm_token=s3cret'")
+  app$wait_for_js("location.search === '?shinyterm_token=s3cret'")
+  app$wait_for_js("document.getElementById('term-term')?._shinyterm?.term != null")
+  app$wait_for_js("document.querySelector('#status .badge')?.textContent === 'running'", timeout = 5000)
+  app$run_js(paste0(term, ".input('ok\\n', true)"))
+  app$wait_for_js(
+    paste0(term, ".buffer.active.getLine(1).translateToString(true) === 'ok'"),
+    timeout = 5000
+  )
 })

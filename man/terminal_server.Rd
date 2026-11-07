@@ -14,7 +14,8 @@ terminal_server(
   auto_start = TRUE,
   echo = TRUE,
   strip_env = TRUE,
-  max_output = 1e+06
+  max_output = 1e+06,
+  token = NULL
 )
 }
 \arguments{
@@ -52,6 +53,10 @@ keeps everything; a string is used as the regular expression instead.}
 
 \item{max_output}{Number of characters of raw output kept in the \code{output}
 reactive.}
+
+\item{token}{Access token the page's URL must carry
+(\verb{?shinyterm_token=<token>}) for the process to start, or \code{NULL} (the
+default) for none. See "Hosted deployments".}
 }
 \value{
 A list of controls and reactives:
@@ -88,9 +93,19 @@ on Windows.
 A terminal gives every visitor a process running as the app's user, so this
 module refuses to run where the app is served to other people: it aborts
 when it detects Shiny Server, Posit Connect, shinyapps.io, ShinyProxy or
-Hugging Face Spaces from the environment, or when the browser reached the
-app through a hostname other than localhost. The error it raises explains
-what you would have to do to override it, and why you should not.
+Hugging Face Spaces from the environment, when the browser reached the
+app through a hostname other than localhost, or when the connection comes
+from a page on another site (a web page you visit trying to reach the app
+on your machine). The hostname and site are read from the \code{Host} and
+\code{Origin} headers of the session's WebSocket request, which a browser
+cannot forge. The error it raises explains what you would have to do to
+override it, and why you should not.
+
+Those checks do not stop other programs or users on the same machine,
+which can reach a localhost port directly. A \code{token} closes that gap: the
+process then only starts for a page whose URL carries
+\verb{?shinyterm_token=<token>}. \code{\link[=terminal_app]{terminal_app()}} and \code{\link[=terminal_tabs_app]{terminal_tabs_app()}} make
+a random token by default and open the browser at the tokenized URL.
 
 Output is polled on a \code{\link[later:later]{later::later()}} timer rather than a reactive one, so
 an idle process does not keep the session busy; only arriving output

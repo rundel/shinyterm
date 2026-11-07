@@ -10,7 +10,8 @@ terminal_app(
   ...,
   options = list(),
   emulator = c("ghostterm", "xterm"),
-  mode = NULL
+  mode = NULL,
+  token = TRUE
 )
 }
 \arguments{
@@ -27,6 +28,10 @@ given).}
 
 \item{mode}{Color mode the app starts in, \code{"dark"} or \code{"light"}. \code{NULL}
 (the default) follows the browser's preference.}
+
+\item{token}{\code{TRUE} (the default) protects the app with a new random
+access token, a string uses that token, and \code{FALSE} turns the protection
+off.}
 }
 \value{
 A \code{\link[shiny:shinyApp]{shiny::shinyApp()}} object.
@@ -45,6 +50,11 @@ unreadable. When \code{command} is \code{codex}, or a \code{\link[=terminal_comm
 \code{fixed_colors = TRUE} (as \code{\link[=codex_command]{codex_command()}} builds), the toggle is
 therefore disabled, with a tooltip saying why, and the app stays in its
 starting mode; use \code{mode} to choose it.
+
+The app is protected by an access token (see "Hosted deployments" in
+\code{\link[=terminal_server]{terminal_server()}}): it opens the browser, or the IDE's viewer, at a URL
+ending in \verb{?shinyterm_token=<token>} and prints the token, and a page
+opened without it gets no process.
 }
 \examples{
 if (interactive()) {

@@ -16,9 +16,19 @@
 #' A terminal gives every visitor a process running as the app's user, so this
 #' module refuses to run where the app is served to other people: it aborts
 #' when it detects Shiny Server, Posit Connect, shinyapps.io, ShinyProxy or
-#' Hugging Face Spaces from the environment, or when the browser reached the
-#' app through a hostname other than localhost. The error it raises explains
-#' what you would have to do to override it, and why you should not.
+#' Hugging Face Spaces from the environment, when the browser reached the
+#' app through a hostname other than localhost, or when the connection comes
+#' from a page on another site (a web page you visit trying to reach the app
+#' on your machine). The hostname and site are read from the `Host` and
+#' `Origin` headers of the session's WebSocket request, which a browser
+#' cannot forge. The error it raises explains what you would have to do to
+#' override it, and why you should not.
+#'
+#' Those checks do not stop other programs or users on the same machine,
+#' which can reach a localhost port directly. A `token` closes that gap: the
+#' process then only starts for a page whose URL carries
+#' `?shinyterm_token=<token>`. [terminal_app()] and [terminal_tabs_app()] make
+#' a random token by default and open the browser at the tokenized URL.
 #'
 #' Output is polled on a [later::later()] timer rather than a reactive one, so
 #' an idle process does not keep the session busy; only arriving output
@@ -49,6 +59,9 @@
 #'   behavior; line-oriented programs rely on it).
 #' @param max_output Number of characters of raw output kept in the `output`
 #'   reactive.
+#' @param token Access token the page's URL must carry
+#'   (`?shinyterm_token=<token>`) for the process to start, or `NULL` (the
+#'   default) for none. See "Hosted deployments".
 #'
 #' @return A list of controls and reactives:
 #' \describe{
@@ -75,7 +88,8 @@ terminal_server = function(
   auto_start = TRUE,
   echo = TRUE,
   strip_env = TRUE,
-  max_output = 1e6
+  max_output = 1e6,
+  token = NULL
 ) {
   check_not_hosted()
   spec = resolve_command(command, args, wd)
@@ -162,14 +176,25 @@ terminal_server = function(
       )
     }
 
+    # Refuses (with the hosted-deployment banner) a session opened from
+    # another host or site, and (with a message in the terminal) a page
+    # without the token.
+    authorized = function() {
+      headers = request_headers(session)
+      check_not_hosted(headers$host, headers$origin)
+      if (token_ok(session, token)) return(TRUE)
+      send(write = token_refusal)
+      FALSE
+    }
+
     start = function() {
       if (running()) return(invisible(FALSE))
-      check_not_hosted(shiny::isolate(session$clientData$url_hostname))
       size = shiny::isolate(input$term)
       if (!is.null(size)) {
         priv$rows = as.integer(size$rows)
         priv$cols = as.integer(size$cols)
       }
+      if (!authorized()) return(invisible(FALSE))
 
       priv$proc = processx::process$new(
         spec$command,

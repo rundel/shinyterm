@@ -7,7 +7,7 @@ test_that("terminal_tabs_app opens, switches and closes terminals in the browser
   skip_if_not_installed("chromote")
 
   app = shinytest2::AppDriver$new(
-    terminal_tabs_app(list(Cat = "cat", Echo = terminal_command("sh", c("-c", "echo bye")))),
+    terminal_tabs_app(list(Cat = "cat", Echo = terminal_command("sh", c("-c", "echo bye"))), token = FALSE),
     name = "tabs",
     timeout = 10000
   )
@@ -81,7 +81,7 @@ test_that("terminal_tabs_app loads xterm.js into new tabs on request", {
   skip_if_not_installed("chromote")
 
   app = shinytest2::AppDriver$new(
-    terminal_tabs_app(list(Cat = "cat"), emulator = "xterm"),
+    terminal_tabs_app(list(Cat = "cat"), emulator = "xterm", token = FALSE),
     name = "tabs-xterm",
     timeout = 10000
   )

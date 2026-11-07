@@ -22,8 +22,14 @@ test_that("client_is_local only accepts loopback names", {
   expect_true(client_is_local("localhost"))
   expect_true(client_is_local("127.0.0.1"))
   expect_true(client_is_local("[::1]"))
+  expect_true(client_is_local("localhost:4321"))
+  expect_true(client_is_local("[::1]:4321"))
+  expect_true(client_is_local("http://127.0.0.1:4321"))
   expect_false(client_is_local("shiny.example.org"))
-  expect_false(client_is_local("192.168.1.20"))
+  expect_false(client_is_local("192.168.1.20:4321"))
+  expect_false(client_is_local("https://evil.example.com"))
+  expect_false(client_is_local("null"))
+  expect_false(client_is_local("mocksession"))
 })
 
 test_that("the UI and server refuse to run on a hosted server without consent", {
@@ -43,12 +49,53 @@ test_that("the UI and server refuse to run on a hosted server without consent", 
   expect_error(terminal_ui("x"), "REFUSES TO RUN")
 })
 
-test_that("a remote client hostname is refused unless consent is given", {
+test_that("a remote host or a foreign origin is refused unless consent is given", {
   withr::local_envvar(clean_env)
-  expect_no_error(check_not_hosted("localhost"))
+  expect_no_error(check_not_hosted("localhost:4321", "http://localhost:4321"))
+  expect_no_error(check_not_hosted("127.0.0.1:4321", NULL))
   expect_error(check_not_hosted("shiny.example.org"), "not localhost")
+  expect_error(
+    check_not_hosted("127.0.0.1:4321", "https://evil.example.com"),
+    "evil.example.com"
+  )
   withr::local_envvar(consent)
   expect_no_error(check_not_hosted("shiny.example.org"))
+  expect_no_error(check_not_hosted("127.0.0.1:4321", "https://evil.example.com"))
+})
+
+test_that("request_headers reads Host and Origin from the session's request", {
+  req = new.env()
+  req$HTTP_HOST = "127.0.0.1:4321"
+  req$HTTP_ORIGIN = "https://evil.example.com"
+  expect_equal(
+    request_headers(list(request = req)),
+    list(host = "127.0.0.1:4321", origin = "https://evil.example.com")
+  )
+  expect_equal(request_headers(list(request = NULL)), list(host = NULL, origin = NULL))
+})
+
+test_that("tokens are random hex, checked against the URL and added to it", {
+  a = new_token()
+  expect_match(a, "^[0-9a-f]{48}$")
+  set.seed(1)
+  b = new_token()
+  set.seed(1)
+  expect_false(identical(b, new_token()))
+
+  expect_null(resolve_token(FALSE))
+  expect_equal(resolve_token("abc"), "abc")
+  expect_match(resolve_token(TRUE), "^[0-9a-f]{48}$")
+  expect_error(resolve_token(""), "token")
+
+  session = function(search) list(clientData = list(url_search = search))
+  expect_true(token_ok(session(""), NULL))
+  expect_true(token_ok(session("?shinyterm_token=abc"), "abc"))
+  expect_true(token_ok(session("?x=1&shinyterm_token=abc"), "abc"))
+  expect_false(token_ok(session("?shinyterm_token=abd"), "abc"))
+  expect_false(token_ok(session(""), "abc"))
+
+  expect_equal(token_url("http://127.0.0.1:1/", "abc"), "http://127.0.0.1:1/?shinyterm_token=abc")
+  expect_equal(token_url("http://h/?a=1", "abc"), "http://h/?a=1&shinyterm_token=abc")
 })
 
 test_that("the banner wraps and boxes its text", {

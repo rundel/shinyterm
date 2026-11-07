@@ -110,3 +110,14 @@ test_that("terminal_server accepts a command specification", {
     }
   )
 })
+
+test_that("a page without the token gets no process", {
+  skip_on_cran()
+  skip_on_os("windows")
+
+  shiny::testServer(terminal_server, args = list(command = "cat", token = "abc"), {
+    session$setInputs(term = list(rows = 24, cols = 80, seq = 0))
+    expect_false(state$alive)
+    expect_null(priv$proc)
+  })
+})

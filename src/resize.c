@@ -1,3 +1,8 @@
+#ifdef _WIN32
+#  define _CRT_RAND_S
+#endif
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 // R 4.6's R_ext/Boolean.h declares Rboolean as `enum :int`, which clang 21
@@ -34,8 +39,37 @@ SEXP shinyterm_resize(SEXP fd, SEXP rows, SEXP cols) {
 #endif
 }
 
+// Returns `n` random bytes from the operating system's generator, for access
+// tokens that must not depend on R's (seedable) random number generator.
+SEXP shinyterm_random_bytes(SEXP n) {
+  int len = Rf_asInteger(n);
+  SEXP out = PROTECT(Rf_allocVector(RAWSXP, len));
+  unsigned char *buf = RAW(out);
+#ifdef _WIN32
+  for (int i = 0; i < len; i++) {
+    unsigned int v;
+    if (rand_s(&v) != 0) {
+      UNPROTECT(1);
+      Rf_error("could not read random bytes");
+    }
+    buf[i] = (unsigned char) (v & 0xff);
+  }
+#else
+  FILE *f = fopen("/dev/urandom", "rb");
+  size_t got = f ? fread(buf, 1, (size_t) len, f) : 0;
+  if (f) fclose(f);
+  if (got != (size_t) len) {
+    UNPROTECT(1);
+    Rf_error("could not read random bytes from /dev/urandom");
+  }
+#endif
+  UNPROTECT(1);
+  return out;
+}
+
 static const R_CallMethodDef CallEntries[] = {
   {"shinyterm_resize", (DL_FUNC) &shinyterm_resize, 3},
+  {"shinyterm_random_bytes", (DL_FUNC) &shinyterm_random_bytes, 1},
   {NULL, NULL, 0}
 };
 

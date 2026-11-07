@@ -169,7 +169,8 @@ terminal_tabs_server = function(
 #' @description
 #' `terminal_tabs_app()` wraps the module in a one-page app, like
 #' [terminal_app()]: a full-window tabset with a restart button for the
-#' selected tab and a light/dark mode toggle, which is disabled when any of
+#' selected tab and a light/dark mode toggle, protected by an access token
+#' as [terminal_app()] is. The toggle is disabled when any of
 #' the commands is `codex` or has `fixed_colors = TRUE` (see [terminal_app()]
 #' for why).
 #'
@@ -182,12 +183,14 @@ terminal_tabs_app = function(
   initial = 1,
   options = list(),
   emulator = c("ghostterm", "xterm"),
-  mode = NULL
+  mode = NULL,
+  token = TRUE
 ) {
   if (!is.null(mode)) mode = match.arg(mode, c("dark", "light"))
   emulator = match.arg(emulator)
   cmds = terminal_commands(commands)
-  server_args = list(...)
+  token = resolve_token(token)
+  server_args = c(list(...), list(token = token))
   switchable = all(vapply(cmds, mode_switchable, TRUE))
 
   ui = bslib::page_fillable(
@@ -221,7 +224,7 @@ terminal_tabs_app = function(
       shiny::bindEvent(input$restart)
   }
 
-  shiny::shinyApp(ui, server)
+  token_app(ui, server, token)
 }
 
 #' Default commands for a terminal tabset
