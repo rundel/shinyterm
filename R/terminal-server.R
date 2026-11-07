@@ -39,6 +39,15 @@
 #' process printing faster than the browser can draw cannot flood the
 #' connection.
 #'
+#' @section Reloading the page:
+#' By default the process is killed when the session ends, which includes
+#' reloading the page or a dropped connection. With `persist` set to a
+#' number of seconds, it is kept running that long instead, and a session
+#' started from the same browser tab (a reload) that runs the same command in
+#' the same terminal reattaches to it: the recent output (`max_output`) is
+#' replayed and the program is asked to redraw. A process nobody reattaches
+#' to within `persist` seconds is killed.
+#'
 #' @param id Module id, matching the `id` passed to [terminal_ui()].
 #' @param command Program to run, as for [processx::process], or a
 #'   [terminal_command()] specification such as [claude_command()] (its
@@ -62,16 +71,21 @@
 #'   terminal size. With `FALSE`, call the returned `start()` yourself.
 #' @param echo Whether the pseudo-terminal echoes input (the normal terminal
 #'   behavior; line-oriented programs rely on it).
-#' @param max_output Number of characters of raw output kept in the `output`
-#'   reactive.
+#' @param max_output Number of characters of the current process's raw output
+#'   kept for the `output` reactive and replayed when a reloaded page
+#'   reattaches. `0` keeps none.
 #' @param token Access token the page's URL must carry
 #'   (`?shinyterm_token=<token>`) for the process to start, or `NULL` (the
 #'   default) for none. See "Hosted deployments".
+#' @param persist Seconds to keep the process running after its session ends,
+#'   for a reloaded page to reattach to. `0` (the default) kills it at once.
+#'   See "Reloading the page".
 #'
 #' @return A list of controls and reactives:
 #' \describe{
-#'   \item{`start()`, `kill()`, `restart()`}{Launch, terminate (with its process
-#'     tree) or relaunch the process. `restart()` also clears the terminal.}
+#'   \item{`start()`, `kill()`, `restart()`}{Launch (or reattach to), terminate
+#'     (with its process tree) or relaunch the process. `restart()` also
+#'     clears the terminal.}
 #'   \item{`write(text)`}{Write `text` to the process as if typed, e.g. to send
 #'     a prompt. Include `"\n"` (or `"\r"` for TUIs) to submit it.}
 #'   \item{`focus()`}{Give the terminal keyboard focus in the browser.}
@@ -80,7 +94,7 @@
 #'     running or before the first launch.}
 #'   \item{`size()`}{Reactive list with the client's `rows` and `cols`.}
 #'   \item{`output()`}{Reactive string: the most recent `max_output` characters
-#'     of raw output, control sequences included.}
+#'     of the current process's raw output, control sequences included.}
 #' }
 #' @export
 terminal_server = function(
@@ -94,38 +108,47 @@ terminal_server = function(
   echo = TRUE,
   strip_env = TRUE,
   max_output = 1e6,
-  token = NULL
+  token = NULL,
+  persist = 0
 ) {
   check_not_hosted()
   spec = resolve_command(command, args, wd)
+  stopifnot(is.numeric(persist), length(persist) == 1, persist >= 0)
 
   shiny::moduleServer(id, function(input, output, session) {
+    # entry: the attached process and its replay buffer (see new_entry())
     priv = new.env(parent = emptyenv())
-    priv$proc = NULL
+    priv$entry = NULL
     priv$loop = 0L
     priv$next_index = 0L
     priv$unwritten = raw(0)
-    priv$output = ""
     priv$sent = 0
     priv$rows = 24L
     priv$cols = 80L
 
     state = shiny::reactiveValues(alive = FALSE, exit_status = NULL, output = "")
+    element = session$ns("term")
 
     send = function(...) {
-      session$sendCustomMessage("shinyterm", list(id = session$ns("term"), ...))
+      session$sendCustomMessage("shinyterm", list(id = element, ...))
     }
 
+    proc = function() priv$entry$proc
+
     running = function() {
-      !is.null(priv$proc) && priv$proc$is_alive()
+      p = proc()
+      !is.null(p) && p$is_alive()
     }
 
     emit = function(text) {
       n = nchar(text)
       priv$sent = priv$sent + n
       send(write = text, n = n)
-      priv$output = tail_chars(paste0(priv$output, text), max_output)
-      state$output = priv$output
+      e = priv$entry
+      if (max_output > 0) {
+        e$output = tail_chars(paste0(e$output, text), max_output)
+        state$output = e$output
+      }
     }
 
     # How many more characters may be sent before the browser must catch up;
@@ -145,9 +168,9 @@ terminal_server = function(
       out = character()
       for (i in seq_len(max_chunks)) {
         if (left <= 0) break
-        status = priv$proc$poll_io(0)
+        status = proc()$poll_io(0)
         if (!identical(status[["output"]], "ready")) break
-        chunk = priv$proc$read_output()
+        chunk = proc()$read_output()
         if (!nzchar(chunk)) break
         out = c(out, chunk)
         left = left - nchar(chunk)
@@ -157,15 +180,17 @@ terminal_server = function(
 
     flush_input = function() {
       if (length(priv$unwritten) == 0 || !running()) return(invisible())
-      priv$unwritten = priv$proc$write_input(priv$unwritten)
+      priv$unwritten = proc()$write_input(priv$unwritten)
     }
 
     finish = function() {
-      if (is.null(priv$proc)) return(invisible())
+      e = priv$entry
+      if (is.null(e)) return(invisible())
       drain(all = TRUE)
-      status = priv$proc$get_exit_status()
+      status = e$proc$get_exit_status()
       if (is.null(status)) status = NA_integer_
-      priv$proc = NULL
+      unregister(e)
+      priv$entry = NULL
       priv$unwritten = raw(0)
       state$alive = FALSE
       state$exit_status = status
@@ -176,10 +201,10 @@ terminal_server = function(
     }
 
     pump = function() {
-      if (is.null(priv$proc)) return(invisible())
+      if (is.null(priv$entry)) return(invisible())
       flush_input()
       drain()
-      if (!priv$proc$is_alive()) finish()
+      if (!proc()$is_alive()) finish()
     }
 
     # One polling loop per launch; the generation counter retires a loop whose
@@ -189,7 +214,7 @@ terminal_server = function(
         function() {
           if (gen != priv$loop || session$isClosed()) return()
           pump()
-          if (!is.null(priv$proc)) schedule(gen)
+          if (!is.null(priv$entry)) schedule(gen)
         },
         delay = interval / 1000
       )
@@ -206,6 +231,23 @@ terminal_server = function(
       FALSE
     }
 
+    reattach = function(e) {
+      e$session = session$token
+      e$expiry = e$expiry + 1L
+      priv$entry = e
+      state$alive = TRUE
+      state$exit_status = NULL
+      state$output = e$output
+      if (nzchar(e$output)) emit_replay(e$output)
+      redraw(e$proc, priv$rows, priv$cols)
+    }
+
+    emit_replay = function(text) {
+      n = nchar(text)
+      priv$sent = priv$sent + n
+      send(write = text, n = n)
+    }
+
     start = function() {
       if (running()) return(invisible(FALSE))
       size = shiny::isolate(input$term)
@@ -215,21 +257,32 @@ terminal_server = function(
       }
       if (!authorized()) return(invisible(FALSE))
 
-      priv$proc = processx::process$new(
-        spec$command,
-        spec$args,
-        pty = TRUE,
-        pty_options = list(echo = echo, rows = priv$rows, cols = priv$cols),
-        env = terminal_env(env, strip_env),
-        wd = spec$wd,
-        cleanup = TRUE,
-        cleanup_tree = TRUE,
-        encoding = "UTF-8"
-      )
+      key = if (persist > 0) entry_key(size$client, element, spec)
+      e = if (!is.null(key)) detached_entry(key)
+      if (is.null(e)) {
+        p = processx::process$new(
+          spec$command,
+          spec$args,
+          pty = TRUE,
+          pty_options = list(echo = echo, rows = priv$rows, cols = priv$cols),
+          env = terminal_env(env, strip_env),
+          wd = spec$wd,
+          cleanup = TRUE,
+          cleanup_tree = TRUE,
+          encoding = "UTF-8"
+        )
+        e = new_entry(p, key)
+        register(e)
+        priv$entry = e
+        e$session = session$token
+        state$alive = TRUE
+        state$exit_status = NULL
+        state$output = ""
+      } else {
+        reattach(e)
+      }
       priv$unwritten = raw(0)
       priv$loop = priv$loop + 1L
-      state$alive = TRUE
-      state$exit_status = NULL
       send(stdin = TRUE, focus = TRUE)
       schedule(priv$loop)
       invisible(TRUE)
@@ -237,8 +290,8 @@ terminal_server = function(
 
     kill = function() {
       if (running()) {
-        priv$proc$kill_tree()
-        priv$proc$wait(1000)
+        proc()$kill_tree()
+        proc()$wait(1000)
       }
       finish()
       invisible()
@@ -279,7 +332,7 @@ terminal_server = function(
       if (rows == priv$rows && cols == priv$cols) return()
       priv$rows = rows
       priv$cols = cols
-      if (running()) pty_resize(priv$proc, rows, cols)
+      if (running()) pty_resize(proc(), rows, cols)
     }) |>
       shiny::bindEvent(input$term)
 
@@ -289,7 +342,13 @@ terminal_server = function(
     }
 
     session$onSessionEnded(function() {
-      if (running()) priv$proc$kill_tree()
+      e = priv$entry
+      if (is.null(e) || !e$proc$is_alive()) return()
+      if (!is.null(e$key)) {
+        detach_entry(e, persist)
+      } else {
+        e$proc$kill_tree()
+      }
     })
 
     list(
@@ -319,6 +378,94 @@ max_unrendered = 262144
 tail_chars = function(x, n) {
   len = nchar(x)
   if (len <= n) x else substr(x, len - n + 1L, len)
+}
+
+# Processes kept alive for reattaching (persist > 0), keyed by entry_key().
+# Each entry is an environment holding the process (`proc`), its replay
+# buffer (`output`), its `key`, the token of the session it is attached to
+# (`session`, NULL while detached) and a generation counter (`expiry`) that
+# cancels a pending kill when the entry is reattached.
+
+registry = new.env(parent = emptyenv())
+
+new_entry = function(proc, key = NULL) {
+  e = new.env(parent = emptyenv())
+  e$proc = proc
+  e$key = key
+  e$output = ""
+  e$session = NULL
+  e$expiry = 0L
+  e
+}
+
+# Identifies "the same terminal" across a reload: the browser tab's key, the
+# terminal element and the command it runs. NULL when the client sent no key.
+#
+# client: the key from the client's size input
+# element: the terminal element id
+# spec: the resolved command
+
+entry_key = function(client, element, spec) {
+  if (is.null(client) || !nzchar(client)) return(NULL)
+  paste(
+    client, element, spec$command, paste(spec$args, collapse = "\x1f"),
+    if (is.null(spec$wd)) "" else spec$wd,
+    sep = "\x1e"
+  )
+}
+
+register = function(e) {
+  if (!is.null(e$key)) assign(e$key, e, envir = registry)
+}
+
+unregister = function(e) {
+  key = e$key
+  if (!is.null(key) && exists(key, envir = registry, inherits = FALSE) &&
+      identical(get(key, envir = registry), e)) {
+    rm(list = key, envir = registry)
+  }
+}
+
+# The entry for `key` if its process is alive and no session holds it.
+
+detached_entry = function(key) {
+  e = registry[[key]]
+  if (is.null(e)) return(NULL)
+  if (!e$proc$is_alive()) {
+    unregister(e)
+    return(NULL)
+  }
+  if (!is.null(e$session)) return(NULL)
+  e
+}
+
+# Leaves `e` running without a session and kills it after `persist` seconds
+# unless a session reattaches first.
+
+detach_entry = function(e, persist) {
+  e$session = NULL
+  e$expiry = e$expiry + 1L
+  gen = e$expiry
+  later::later(
+    function() {
+      if (e$expiry != gen || !is.null(e$session)) return()
+      unregister(e)
+      if (e$proc$is_alive()) e$proc$kill_tree()
+    },
+    delay = persist
+  )
+}
+
+# Makes a full-screen program redraw after a reattach by changing the pty
+# size and changing it back, which delivers SIGWINCH even when the new page
+# has the size the process already had.
+
+redraw = function(proc, rows, cols) {
+  pty_resize(proc, rows, max(cols - 1L, 1L))
+  later::later(
+    function() if (proc$is_alive()) pty_resize(proc, rows, cols),
+    delay = 0.05
+  )
 }
 
 # Environment for the child process: the current environment minus the

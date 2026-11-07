@@ -15,7 +15,8 @@ terminal_server(
   echo = TRUE,
   strip_env = TRUE,
   max_output = 1e+06,
-  token = NULL
+  token = NULL,
+  persist = 0
 )
 }
 \arguments{
@@ -51,18 +52,24 @@ transcripts, and of IDE terminals (\verb{VSCODE_*}, \verb{POSITRON*}, \verb{RSTU
 \code{TERM_PROGRAM}), which make it look for an IDE to connect to. \code{FALSE}
 keeps everything; a string is used as the regular expression instead.}
 
-\item{max_output}{Number of characters of raw output kept in the \code{output}
-reactive.}
+\item{max_output}{Number of characters of the current process's raw output
+kept for the \code{output} reactive and replayed when a reloaded page
+reattaches. \code{0} keeps none.}
 
 \item{token}{Access token the page's URL must carry
 (\verb{?shinyterm_token=<token>}) for the process to start, or \code{NULL} (the
 default) for none. See "Hosted deployments".}
+
+\item{persist}{Seconds to keep the process running after its session ends,
+for a reloaded page to reattach to. \code{0} (the default) kills it at once.
+See "Reloading the page".}
 }
 \value{
 A list of controls and reactives:
 \describe{
-\item{\code{start()}, \code{kill()}, \code{restart()}}{Launch, terminate (with its process
-tree) or relaunch the process. \code{restart()} also clears the terminal.}
+\item{\code{start()}, \code{kill()}, \code{restart()}}{Launch (or reattach to), terminate
+(with its process tree) or relaunch the process. \code{restart()} also
+clears the terminal.}
 \item{\code{write(text)}}{Write \code{text} to the process as if typed, e.g. to send
 a prompt. Include \code{"\\n"} (or \code{"\\r"} for TUIs) to submit it.}
 \item{\code{focus()}}{Give the terminal keyboard focus in the browser.}
@@ -71,7 +78,7 @@ a prompt. Include \code{"\\n"} (or \code{"\\r"} for TUIs) to submit it.}
 running or before the first launch.}
 \item{\code{size()}}{Reactive list with the client's \code{rows} and \code{cols}.}
 \item{\code{output()}}{Reactive string: the most recent \code{max_output} characters
-of raw output, control sequences included.}
+of the current process's raw output, control sequences included.}
 }
 }
 \description{
@@ -117,5 +124,16 @@ much output it has rendered, and reading stops while it is too far behind
 (the process then blocks on its writes, as in a slow terminal), so a
 process printing faster than the browser can draw cannot flood the
 connection.
+}
+
+\section{Reloading the page}{
+
+By default the process is killed when the session ends, which includes
+reloading the page or a dropped connection. With \code{persist} set to a
+number of seconds, it is kept running that long instead, and a session
+started from the same browser tab (a reload) that runs the same command in
+the same terminal reattaches to it: the recent output (\code{max_output}) is
+replayed and the program is asked to redraw. A process nobody reattaches
+to within \code{persist} seconds is killed.
 }
 

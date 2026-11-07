@@ -204,3 +204,34 @@ test_that("a flood of output reaches the browser in full", {
   )
   expect_equal(app$get_text("#status .badge"), "running")
 })
+
+test_that("with persist, reloading the page reattaches to the process", {
+  skip_on_cran()
+  skip_on_os("windows")
+  skip_if_not_installed("shinytest2")
+  skip_if_not_installed("chromote")
+
+  app = shinytest2::AppDriver$new(
+    terminal_app("cat", persist = 30, token = FALSE),
+    name = "persist",
+    timeout = 10000
+  )
+  on.exit(app$stop(), add = TRUE)
+
+  term = "document.getElementById('term-term')?._shinyterm?.term"
+  app$wait_for_js(paste(term, "!= null"))
+  app$wait_for_js("document.querySelector('#status .badge')?.textContent === 'running'", timeout = 5000)
+  app$run_js(paste0(term, ".input('before\\n', true)"))
+  app$wait_for_js(paste0(term, ".buffer.active.getLine(1).translateToString(true) === 'before'"), timeout = 5000)
+
+  app$run_js("window.reloaded = false; location.reload()")
+  app$wait_for_js("window.reloaded === undefined")
+  app$wait_for_js(paste(term, "!= null"))
+  app$wait_for_js(paste0(term, "?.buffer.active.getLine(1).translateToString(true) === 'before'"), timeout = 5000)
+  app$run_js(paste0(term, ".input('after\\n', true)"))
+  app$wait_for_js(paste0(term, ".buffer.active.getLine(3).translateToString(true) === 'after'"), timeout = 5000)
+  expect_equal(
+    app$get_js(paste0(term, ".buffer.active.getLine(0).translateToString(true)")),
+    "before"
+  )
+})

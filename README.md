@@ -96,6 +96,8 @@ everything or a regular expression to choose what to drop.
 
 A module in your own app has no access token unless you give it one with `token = "..."` and open the app at a URL ending in `?shinyterm_token=...`.
 
+By default the process is killed when its session ends, which includes reloading the page or a dropped connection (a laptop going to sleep). `persist = 300` keeps it running for 300 seconds instead: a reload of the same browser tab reattaches to it, replays the recent output and asks the program to redraw. This works with the app wrappers too, e.g. `terminal_app("claude", persist = 300)`.
+
 ### Multiple terminals in tabs
 
 `terminal_tabs_app()` and the `terminal_tabs_ui()` / `terminal_tabs_server()`

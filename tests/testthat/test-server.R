@@ -118,7 +118,7 @@ test_that("a page without the token gets no process", {
   shiny::testServer(terminal_server, args = list(command = "cat", token = "abc"), {
     session$setInputs(term = list(rows = 24, cols = 80, seq = 0))
     expect_false(state$alive)
-    expect_null(priv$proc)
+    expect_null(priv$entry)
   })
 })
 
@@ -147,4 +147,53 @@ test_that("output reading stops while the browser is behind", {
       kill()
     }
   )
+})
+
+test_that("with persist, a new session from the same tab reattaches", {
+  skip_on_cran()
+  skip_on_os("windows")
+
+  args = list(id = "t", command = "cat", persist = 5)
+  pid = NULL
+  shiny::testServer(terminal_server, args = args, {
+    session$setInputs(term = list(rows = 24, cols = 80, seq = 0, client = "tab-1"))
+    session$setInputs(term_data = list(from = 0, chunks = list("before\n")))
+    tick(session)
+    pid <<- priv$entry$proc$get_pid()
+  })
+  e = mget(ls(registry), envir = registry)
+  expect_length(e, 1)
+  expect_true(e[[1]]$proc$is_alive())
+  expect_null(e[[1]]$session)
+
+  shiny::testServer(terminal_server, args = args, {
+    session$setInputs(term = list(rows = 24, cols = 80, seq = 0, client = "tab-2"))
+    expect_false(identical(priv$entry$proc$get_pid(), pid))
+    kill()
+  })
+
+  shiny::testServer(terminal_server, args = args, {
+    session$setInputs(term = list(rows = 24, cols = 80, seq = 0, client = "tab-1"))
+    expect_true(state$alive)
+    expect_equal(priv$entry$proc$get_pid(), pid)
+    expect_match(state$output, "before")
+    kill()
+  })
+  expect_length(ls(registry), 0)
+})
+
+test_that("a detached process is killed after persist seconds", {
+  skip_on_cran()
+  skip_on_os("windows")
+
+  held = NULL
+  shiny::testServer(terminal_server, args = list(id = "t", command = "cat", persist = 0.3), {
+    session$setInputs(term = list(rows = 24, cols = 80, seq = 0, client = "tab-x"))
+    held <<- priv$entry$proc
+  })
+  expect_true(held$is_alive())
+  tick(NULL, 6)
+  held$wait(1000)
+  expect_false(held$is_alive())
+  expect_length(ls(registry), 0)
 })

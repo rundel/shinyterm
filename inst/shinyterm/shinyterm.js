@@ -1,18 +1,20 @@
 // Shiny input binding for the shinyterm terminal element.
 //
-// The element's input value is its size ({rows, cols, seq}). Keystrokes are
-// sent separately as <id>_data events carrying the chunks the server has not
-// acknowledged yet (up to a size cap, the rest following each ack), indexed
-// from `from`, so chunks coalesced by Shiny's input batching are never lost
-// and chunks re-sent before an ack are never written twice. The server talks
-// back with messages carrying any of: write (text to print) with n (its
-// length as the server counts it), ack (last chunk index consumed), clear,
-// focus and stdin (enable/disable keyboard input). Once a write has been
-// rendered its n is added to a running total reported as <id>_written, which
-// the server uses to stop reading output while the browser is too far
-// behind. The server sends them as "shinyterm"
-// custom messages carrying the element id, so output can be pushed from
-// outside a reactive flush; receiveMessage() also serves sendInputMessage().
+// The element's input value is its size ({rows, cols, seq, client}), where
+// client is a key kept in sessionStorage so a reloaded page can reattach to a
+// process the server kept alive. Keystrokes are sent separately as <id>_data
+// events carrying the chunks the server has not acknowledged yet (up to a
+// size cap, the rest following each ack), indexed from `from`, so chunks
+// coalesced by Shiny's input batching are never lost and chunks re-sent
+// before an ack are never written twice. The server talks back with messages
+// carrying any of: write (text to print) with n (its length as the server
+// counts it), ack (last chunk index consumed), clear, focus and stdin
+// (enable/disable keyboard input). Once a write has been rendered its n is
+// added to a running total reported as <id>_written, which the server uses
+// to stop reading output while the browser is too far behind. The server
+// sends them as "shinyterm" custom messages carrying the element id, so
+// output can be pushed from outside a reactive flush; receiveMessage() also
+// serves sendInputMessage().
 //
 // The terminal is ghostterm (libghostty-vt in WebAssembly) or xterm.js, chosen
 // by the element's data-emulator attribute. Both have the xterm.js API, so
@@ -181,6 +183,24 @@
     }
   }
 
+  // The key that identifies this browser tab to the server across reloads.
+  function clientKey() {
+    var key = null;
+    try {
+      key = window.sessionStorage.getItem("shinyterm-client");
+    } catch (e) {}
+    if (!key) {
+      key =
+        window.crypto && window.crypto.randomUUID
+          ? window.crypto.randomUUID()
+          : String(Math.random()).slice(2) + String(Date.now());
+      try {
+        window.sessionStorage.setItem("shinyterm-client", key);
+      } catch (e) {}
+    }
+    return key;
+  }
+
   // Shows why the terminal could not be created in place of the terminal.
   function showError(el, text) {
     var box = document.createElement("div");
@@ -237,6 +257,7 @@
         written: 0,
         reported: 0,
         writtenTimer: null,
+        client: clientKey(),
         pending: [],
         rows: null,
         cols: null,
@@ -272,7 +293,7 @@
     getValue: function (el) {
       var st = el._shinyterm;
       if (!st || !st.term) return null;
-      return { rows: st.rows, cols: st.cols, seq: st.seq };
+      return { rows: st.rows, cols: st.cols, seq: st.seq, client: st.client };
     },
 
     subscribe: function (el, callback) {
