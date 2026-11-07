@@ -16,7 +16,11 @@ Rscript -e 'devtools::test()'                     # run all tests
 Rscript -e 'devtools::test(filter = "server")'    # one test file (tests/testthat/test-server.R)
 Rscript -e 'devtools::check()'                    # full R CMD check
 Rscript -e 'devtools::load_all(); terminal_app()' # try the app interactively (your $SHELL)
+Rscript tools/screenshots.R                       # regenerate README figures in man/figures/
+Rscript tools/screenshots.R shell tabs            # only some (shell, tabs, claude, codex)
 ```
+
+`tools/screenshots.R` drives the apps in headless Chrome via shinytest2/chromote, so like the browser tests it uses the installed shinyterm and shinytabs; reinstall first. The `claude` and `codex` figures start real, logged-in agent sessions in a scratch project and send each a one-line prompt.
 
 Tests in `test-app.R` and `test-tabs-app.R` drive a real browser through `shinytest2`/`chromote` and are skipped on CRAN, on Windows, or when those packages are missing. They run the app in a child R process that uses the *installed* shinyterm and shinytabs for static resources, so reinstall both (`devtools::install()` in each) after changing anything under `inst/` or the shinytabs server before trusting a browser-test result. `test-server.R` uses `shiny::testServer()` and advances the `later` polling loop by hand with a local `tick()` helper (sleep, then `later::run_now()`), because output polling happens outside the reactive graph.
 
