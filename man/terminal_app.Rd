@@ -41,9 +41,10 @@ terminal in a larger app.
 \details{
 Codex reads the terminal colors once at launch and keeps drawing its
 composer with them, so switching mode while it runs leaves the composer
-unreadable. When \code{command} is \code{codex} the toggle is therefore disabled,
-with a tooltip saying why, and the app stays in its starting mode; use
-\code{mode} to choose it.
+unreadable. When \code{command} is \code{codex}, or a \code{\link[=terminal_command]{terminal_command()}} with
+\code{fixed_colors = TRUE} (as \code{\link[=codex_command]{codex_command()}} builds), the toggle is
+therefore disabled, with a tooltip saying why, and the app stays in its
+starting mode; use \code{mode} to choose it.
 }
 \examples{
 if (interactive()) {

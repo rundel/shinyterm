@@ -1,7 +1,8 @@
 #' Command specifications
 #'
 #' A `shinyterm_command` bundles a program, its arguments and a working
-#' directory, and can be passed as the `command` of [terminal_server()] or
+#' directory (plus whether the program tolerates a color mode change), and
+#' can be passed as the `command` of [terminal_server()] or
 #' [terminal_app()]. [claude_command()] and [codex_command()] build
 #' specifications that launch the agent CLIs with their own sandboxes turned
 #' on, so the agent is confined to the project directory without any wrapper
@@ -10,19 +11,23 @@
 #' @param command Program to run.
 #' @param args Character vector of arguments.
 #' @param wd Working directory, or `NULL` for the current one.
+#' @param fixed_colors Whether the program reads the terminal colors once at
+#'   launch and never again, so the page's light/dark mode must not change
+#'   while it runs. [terminal_app()] and [terminal_tabs_app()] disable their
+#'   mode toggle for such commands. `codex_command()` sets it.
 #'
 #' @return An object of class `shinyterm_command`: a list with `command`,
-#'   `args` and `wd`.
+#'   `args`, `wd` and `fixed_colors`.
 #' @export
 #' @examples
 #' terminal_command("htop")
 #' claude_command(wd = "~/project", allowed_domains = "github.com")
 #' codex_command(wd = "~/project", sandbox = "read-only")
-terminal_command = function(command, args = character(), wd = NULL) {
+terminal_command = function(command, args = character(), wd = NULL, fixed_colors = FALSE) {
   stopifnot(is.character(command), length(command) == 1)
   if (!is.null(wd)) wd = path.expand(wd)
   structure(
-    list(command = command, args = as.character(args), wd = wd),
+    list(command = command, args = as.character(args), wd = wd, fixed_colors = isTRUE(fixed_colors)),
     class = "shinyterm_command"
   )
 }
@@ -113,8 +118,10 @@ claude_command = function(
   if (!is.null(permission_mode)) {
     extra = c(extra, "--permission-mode", permission_mode)
   }
+  # `--add-dir` takes several values, so the `=` form keeps it from swallowing
+  # a prompt or other positional argument that follows it.
   if (length(add_dir)) {
-    extra = c(extra, "--add-dir", path.expand(add_dir))
+    extra = c(extra, paste0("--add-dir=", path.expand(add_dir)))
   }
 
   terminal_command(command, c(args, extra), wd)
@@ -133,7 +140,7 @@ claude_command = function(
 #' @param network Allow outbound network access inside Codex's workspace-write
 #'   sandbox.
 #' @param writable_roots Extra directories Codex may write to in
-#'   workspace-write mode.
+#'   workspace-write mode. Relative paths are taken relative to `wd`.
 #' @param config Named list of Codex config overrides passed as `-c key=value`
 #'   (nested keys as dotted names; vectors become TOML arrays).
 #' @export
@@ -155,10 +162,7 @@ codex_command = function(
   if (sandbox == "workspace-write") {
     if (isTRUE(network)) overrides$sandbox_workspace_write.network_access = TRUE
     if (length(writable_roots)) {
-      overrides$sandbox_workspace_write.writable_roots = normalizePath(
-        path.expand(writable_roots),
-        mustWork = FALSE
-      )
+      overrides$sandbox_workspace_write.writable_roots = absolute_path(writable_roots, wd)
     }
   }
   overrides = utils::modifyList(overrides, config)
@@ -171,12 +175,12 @@ codex_command = function(
     extra = c(extra, "-c", paste0(key, "=", toml_value(overrides[[key]])))
   }
 
-  terminal_command(command, c(args, extra), wd)
+  terminal_command(command, c(args, extra), wd, fixed_colors = TRUE)
 }
 
-# Resolves the command/args/wd triple used by terminal_server() and
-# terminal_app(): a shinyterm_command contributes its parts, with explicit
-# `args` appended and an explicit `wd` taking precedence.
+# Resolves the command/args/wd triple (plus fixed_colors) used by
+# terminal_server() and terminal_app(): a shinyterm_command contributes its
+# parts, with explicit `args` appended and an explicit `wd` taking precedence.
 #
 # command: a program name or a shinyterm_command
 # args: extra arguments
@@ -189,8 +193,22 @@ resolve_command = function(command, args = character(), wd = NULL) {
   list(
     command = command$command,
     args = c(command$args, as.character(args)),
-    wd = if (!is.null(wd)) path.expand(wd) else command$wd
+    wd = if (!is.null(wd)) path.expand(wd) else command$wd,
+    fixed_colors = isTRUE(command$fixed_colors)
   )
+}
+
+# Makes paths absolute: `~` is expanded and relative paths are taken relative
+# to `wd` (or the current directory when `wd` is NULL).
+#
+# paths: character vector of paths
+# wd: base directory, or NULL
+
+absolute_path = function(paths, wd = NULL) {
+  paths = path.expand(as.character(paths))
+  relative = !grepl("^(/|[A-Za-z]:[/\\\\]|\\\\\\\\)", paths)
+  if (!is.null(wd)) paths[relative] = file.path(path.expand(wd), paths[relative])
+  normalizePath(paths, mustWork = FALSE)
 }
 
 # Marks a character vector so toJSON(auto_unbox = TRUE) keeps a single path

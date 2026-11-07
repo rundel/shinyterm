@@ -6,7 +6,7 @@
 \alias{codex_command}
 \title{Command specifications}
 \usage{
-terminal_command(command, args = character(), wd = NULL)
+terminal_command(command, args = character(), wd = NULL, fixed_colors = FALSE)
 
 claude_command(
   wd = NULL,
@@ -43,6 +43,11 @@ codex_command(
 
 \item{wd}{Working directory, or \code{NULL} for the current one.}
 
+\item{fixed_colors}{Whether the program reads the terminal colors once at
+launch and never again, so the page's light/dark mode must not change
+while it runs. \code{\link[=terminal_app]{terminal_app()}} and \code{\link[=terminal_tabs_app]{terminal_tabs_app()}} disable their
+mode toggle for such commands. \code{codex_command()} sets it.}
+
 \item{sandbox}{Enable the agent's sandbox. For Codex, one of
 \code{"workspace-write"}, \code{"read-only"} or \code{"danger-full-access"}.}
 
@@ -72,18 +77,19 @@ when it wants to leave the sandbox) or \code{"never"}.}
 sandbox.}
 
 \item{writable_roots}{Extra directories Codex may write to in
-workspace-write mode.}
+workspace-write mode. Relative paths are taken relative to \code{wd}.}
 
 \item{config}{Named list of Codex config overrides passed as \verb{-c key=value}
 (nested keys as dotted names; vectors become TOML arrays).}
 }
 \value{
 An object of class \code{shinyterm_command}: a list with \code{command},
-\code{args} and \code{wd}.
+\code{args}, \code{wd} and \code{fixed_colors}.
 }
 \description{
 A \code{shinyterm_command} bundles a program, its arguments and a working
-directory, and can be passed as the \code{command} of \code{\link[=terminal_server]{terminal_server()}} or
+directory (plus whether the program tolerates a color mode change), and
+can be passed as the \code{command} of \code{\link[=terminal_server]{terminal_server()}} or
 \code{\link[=terminal_app]{terminal_app()}}. \code{\link[=claude_command]{claude_command()}} and \code{\link[=codex_command]{codex_command()}} build
 specifications that launch the agent CLIs with their own sandboxes turned
 on, so the agent is confined to the project directory without any wrapper

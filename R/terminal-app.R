@@ -8,9 +8,10 @@
 #'
 #' Codex reads the terminal colors once at launch and keeps drawing its
 #' composer with them, so switching mode while it runs leaves the composer
-#' unreadable. When `command` is `codex` the toggle is therefore disabled,
-#' with a tooltip saying why, and the app stays in its starting mode; use
-#' `mode` to choose it.
+#' unreadable. When `command` is `codex`, or a [terminal_command()] with
+#' `fixed_colors = TRUE` (as [codex_command()] builds), the toggle is
+#' therefore disabled, with a tooltip saying why, and the app stays in its
+#' starting mode; use `mode` to choose it.
 #'
 #' @inheritParams terminal_server
 #' @param ... Passed on to [terminal_server()].
@@ -41,7 +42,7 @@ terminal_app = function(
   label = format(do.call(terminal_command, spec))
   server_args = list(...)
 
-  toggle = mode_toggle(mode, locked = !mode_switchable(spec$command))
+  toggle = mode_toggle(mode, locked = !mode_switchable(spec))
 
   ui = bslib::page_fillable(
     title = "shinyterm",
@@ -105,18 +106,23 @@ mode_toggle = function(mode, locked = FALSE) {
       tabindex = "0",
       htmltools::tagAppendAttributes(toggle, inert = NA, style = "opacity: 0.4")
     ),
-    "Light/dark switching is disabled: codex does not support changing themes after launch.",
+    "Light/dark switching is disabled: this command does not support changing colors after launch.",
     placement = "bottom"
   )
 }
 
-# Whether the page's color mode may change while `command` runs. Codex reads
-# the terminal colors once at launch (OSC 10/11) and never again, so a later
-# switch leaves its composer drawn in the old mode's colors.
+# Whether the page's color mode may change while `command` runs. Programs
+# that read the terminal colors once at launch (OSC 10/11) and never again,
+# such as Codex, keep drawing in the old mode's colors after a switch. Plain
+# `codex` is recognized by name so `terminal_app("codex")` works too.
 #
-# command: program name or path
+# command: program name or path, or a shinyterm_command
 
 mode_switchable = function(command) {
+  if (inherits(command, "shinyterm_command") || is.list(command)) {
+    if (isTRUE(command$fixed_colors)) return(FALSE)
+    command = command$command
+  }
   !grepl("^codex(\\.exe)?$", basename(command), ignore.case = TRUE)
 }
 

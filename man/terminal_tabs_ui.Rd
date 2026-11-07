@@ -94,7 +94,8 @@ whether its process is running.
 \code{terminal_tabs_app()} wraps the module in a one-page app, like
 \code{\link[=terminal_app]{terminal_app()}}: a full-window tabset with a restart button for the
 selected tab and a light/dark mode toggle, which is disabled when any of
-the commands is \code{codex} (see \code{\link[=terminal_app]{terminal_app()}} for why).
+the commands is \code{codex} or has \code{fixed_colors = TRUE} (see \code{\link[=terminal_app]{terminal_app()}}
+for why).
 }
 \details{
 The same operations are available from the server through the returned

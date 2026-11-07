@@ -17,7 +17,8 @@ test_that("terminal_command and resolve_command combine parts", {
   expect_equal(resolve_command(cmd, wd = "/tmp")$wd, "/tmp")
 
   r = resolve_command("bash", args = "-l")
-  expect_equal(r, list(command = "bash", args = "-l", wd = NULL))
+  expect_equal(r, list(command = "bash", args = "-l", wd = NULL, fixed_colors = FALSE))
+  expect_true(resolve_command(codex_command())$fixed_colors)
 })
 
 test_that("claude_command enables a strict sandbox by default", {
@@ -52,7 +53,15 @@ test_that("claude_command maps filesystem, network, permission and extra setting
   expect_equal(s$model, "sonnet")
   expect_equal(cmd$args[1], "--verbose")
   expect_equal(cmd$args[match("--permission-mode", cmd$args) + 1], "acceptEdits")
-  expect_equal(utils::tail(cmd$args, 3), c("--add-dir", path.expand("~/x"), path.expand("~/y")))
+  expect_equal(
+    utils::tail(cmd$args, 2),
+    paste0("--add-dir=", path.expand(c("~/x", "~/y")))
+  )
+})
+
+test_that("claude_command's --add-dir does not swallow a trailing prompt", {
+  r = resolve_command(claude_command(add_dir = "/tmp/x"), args = "explain this repo")
+  expect_equal(utils::tail(r$args, 2), c("--add-dir=/tmp/x", "explain this repo"))
 })
 
 test_that("claude_command with sandbox = FALSE passes only the user settings", {
@@ -79,6 +88,12 @@ test_that("codex_command builds sandbox, approval and config flags", {
   expect_true('shell_environment_policy.inherit="all"' %in% cfg)
   expect_true("n=2" %in% cfg)
   expect_true("flags=[true, false]" %in% cfg)
+
+  cmd = codex_command(wd = "/proj", writable_roots = c("out", "/abs", "~/h"))
+  cfg = cmd$args[which(cmd$args == "-c") + 1]
+  roots = jsonlite::fromJSON(sub("^[^=]*=", "", cfg))
+  expect_equal(roots, normalizePath(c("/proj/out", "/abs", path.expand("~/h")), mustWork = FALSE))
+  expect_true(cmd$fixed_colors)
 
   cmd = codex_command(sandbox = "read-only", network = TRUE, writable_roots = "/tmp")
   expect_false(any(grepl("sandbox_workspace_write", cmd$args)))

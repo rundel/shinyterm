@@ -95,6 +95,9 @@ test_that("terminal_app validates mode and detects codex", {
   expect_false(shinyterm:::mode_switchable("codex"))
   expect_false(shinyterm:::mode_switchable("/opt/homebrew/bin/codex"))
   expect_false(shinyterm:::mode_switchable("Codex.exe"))
+  expect_false(shinyterm:::mode_switchable(codex_command(command = "/opt/codex-wrapper")))
+  expect_false(shinyterm:::mode_switchable(terminal_command("tui", fixed_colors = TRUE)))
+  expect_true(shinyterm:::mode_switchable(claude_command()))
 })
 
 test_that("terminal_app starts in the requested color mode", {
@@ -136,7 +139,7 @@ test_that("terminal_app disables the mode toggle for codex", {
   app$wait_for_js("document.querySelector('.tooltip') != null", timeout = 5000)
   expect_match(
     app$get_js("document.querySelector('.tooltip').textContent"),
-    "codex does not support"
+    "does not support changing colors"
   )
 
   app$click(selector = "#dark_mode")
