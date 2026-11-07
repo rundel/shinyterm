@@ -19,6 +19,13 @@ figures_dir = "man/figures"
 stopifnot(dir.exists(figures_dir))
 pkg_dir = normalizePath(".")
 
+# Terminal font for the figures: Hack at 13px (the font used in herdr),
+# falling back to common monospace fonts where Hack is not installed.
+term_options = list(
+  fontFamily = "Hack, Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+  fontSize = 13
+)
+
 # Terminal helpers -----------------------------------------------------------
 
 term_js = function(id) {
@@ -110,7 +117,7 @@ accept_trust = function(app, ready) {
 
 figures = list(
   shell = function() {
-    app = start_app(terminal_app(terminal_command("zsh", "-f", wd = pkg_dir), mode = "dark"))
+    app = start_app(terminal_app(terminal_command("zsh", "-f", wd = pkg_dir), mode = "dark", options = term_options))
     on.exit(app$stop())
     wait_for_screen(app, "%")
     type(app, "echo 'hello from shinyterm' && uname -sm\r")
@@ -122,7 +129,7 @@ figures = list(
 
   tabs = function() {
     id = "terms-tabs-tab1-term-term"
-    app = start_app(terminal_tabs_app(mode = "dark", wd = pkg_dir), width = 1000, height = 600, id = id)
+    app = start_app(terminal_tabs_app(mode = "dark", options = term_options, wd = pkg_dir), width = 1000, height = 600, id = id)
     on.exit(app$stop())
     wait_for_screen(app, "\\S", id = id, settle = 2)
     app$click(selector = "#terms-tabs-tabset .shinytabs-add-btn")
@@ -140,7 +147,7 @@ figures = list(
       allow_read = ".",
       permission_mode = "acceptEdits"
     )
-    app = start_app(terminal_app(cmd, mode = "dark"))
+    app = start_app(terminal_app(cmd, mode = "dark", options = term_options))
     on.exit(app$stop())
     accept_trust(app, "❯|>")
     type(app, "Say hello in one sentence and name the sandbox restrictions you are running under.")
@@ -152,7 +159,7 @@ figures = list(
 
   codex = function() {
     project = demo_project()
-    app = start_app(terminal_app(codex_command(wd = project), mode = "dark"))
+    app = start_app(terminal_app(codex_command(wd = project), mode = "dark", options = term_options))
     on.exit(app$stop())
     accept_trust(app, "OpenAI Codex")
     wait_for_screen(app, "OpenAI Codex", settle = 2)
