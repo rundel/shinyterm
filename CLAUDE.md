@@ -75,3 +75,4 @@ On unix the pty is resized live with `TIOCSWINSZ` on the master fd (obtained fro
 - The vendored xterm.js build in `inst/xterm/` is pinned in `R/dependencies.R` (`version = "5.5.0"`); update both together.
 - The vendored ghostterm build is `dist/ghostterm-slim.js` and `dist/ghostty-vt.wasm` from `../ghostterm` (`bun run build`), plus its `LICENSE`; the slim bundle fetches the wasm from next to itself. Its version is pinned in `R/dependencies.R`; update both together, and bump it (with a `.9000` suffix for an unreleased build) whenever the files change so browsers don't keep a cached copy.
 - ghostterm's `term.input(data)` fires `onData` by default, as in xterm.js (ghostterm 0.0.2 needed a second argument of `true`, which the browser tests still pass).
+- Both emulators process writes asynchronously, so anything that must stay in order with output (such as the restart's clear) is written into the stream rather than called as a method.

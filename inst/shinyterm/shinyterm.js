@@ -336,7 +336,9 @@
         // Chunks beyond the size cap of the last send go out now.
         if (st.from + st.chunks.length > st.sentTo) sendChunks(st);
       }
-      if (msg.clear) st.term.reset();
+      // A reset (RIS) written into the stream stays in order with output
+      // still queued in the emulator, which reset() would not.
+      if (msg.clear) st.term.write("\x1bc");
       if (msg.stdin != null) st.term.options.disableStdin = !msg.stdin;
       if (msg.focus) st.term.focus();
     },

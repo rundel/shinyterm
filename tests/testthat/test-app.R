@@ -235,3 +235,31 @@ test_that("with persist, reloading the page reattaches to the process", {
     "before"
   )
 })
+
+for (emulator in c("ghostterm", "xterm")) test_that(paste("a clear stays in order with queued output in", emulator), {
+  skip_on_cran()
+  skip_on_os("windows")
+  skip_if_not_installed("shinytest2")
+  skip_if_not_installed("chromote")
+
+  app = shinytest2::AppDriver$new(
+    terminal_app("cat", emulator = emulator, token = FALSE),
+    name = paste0("clear-order-", emulator),
+    timeout = 10000
+  )
+  on.exit(app$stop(), add = TRUE)
+
+  app$wait_for_js("document.getElementById('term-term')._shinyterm.term != null")
+  app$run_js("
+    const el = document.getElementById('term-term');
+    const b = Shiny.inputBindings.getBindings().map(x => x.binding).find(x => $(x.find(document)).filter('.shinyterm').length > 0);
+    b.receiveMessage(el, {write: ('x'.repeat(100) + '\\r\\n').repeat(20000)});
+    b.receiveMessage(el, {clear: true});
+    b.receiveMessage(el, {write: 'NEW', n: 3});
+  ")
+  app$wait_for_js("document.getElementById('term-term')._shinyterm.written >= 3", timeout = 20000)
+  expect_equal(
+    app$get_js("document.getElementById('term-term')._shinyterm.term.buffer.active.getLine(0).translateToString(true)"),
+    "NEW"
+  )
+})
