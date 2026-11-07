@@ -6,7 +6,7 @@
 \alias{shinyterm-package}
 \title{shinyterm: Embed a Terminal Emulator in 'shiny' Apps}
 \description{
-A 'shiny' module that embeds an 'xterm.js' terminal in an app and connects it to a local process running inside a pseudo-terminal (via 'processx'). Keystrokes are forwarded to the process and its output is streamed back to the browser, so interactive command line tools, including shells and agent CLIs such as 'claude' or 'codex', can run inside a 'shiny' app.
+A 'shiny' module that embeds a terminal emulator ('ghostterm', built on 'libghostty-vt', or 'xterm.js') in an app and connects it to a local process running inside a pseudo-terminal (via 'processx'). Keystrokes are forwarded to the process and its output is streamed back to the browser, so interactive command line tools, including shells and agent CLIs such as 'claude' or 'codex', can run inside a 'shiny' app.
 }
 \seealso{
 Useful links:

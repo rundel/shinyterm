@@ -19,7 +19,7 @@ test_that("terminal_tabs_app opens, switches and closes terminals in the browser
     "document.querySelector('#terms-tabs-tabset .shinytabs-tab[data-id=\"tab1\"] .shinyterm-status-running') != null",
     timeout = 5000
   )
-  app$run_js(paste0(term1, ".input('hello\\n')"))
+  app$run_js(paste0(term1, ".input('hello\\n', true)"))
   app$wait_for_js(
     paste0(term1, ".buffer.active.getLine(1).translateToString(true) === 'hello'"),
     timeout = 5000
@@ -67,6 +67,33 @@ test_that("terminal_tabs_app opens, switches and closes terminals in the browser
   app$wait_for_js("document.getElementById('terms-tabs-tab3-term-term') != null")
   app$wait_for_js(
     "document.querySelector('#terms-tabs-tabset .shinytabs-tab[data-id=\"tab3\"] .shinyterm-status-running') != null",
+    timeout = 5000
+  )
+})
+
+test_that("terminal_tabs_app loads xterm.js into new tabs on request", {
+  skip_on_cran()
+  skip_on_os("windows")
+  skip_if_not_installed("shinytest2")
+  skip_if_not_installed("chromote")
+
+  app = shinytest2::AppDriver$new(
+    terminal_tabs_app(list(Cat = "cat"), emulator = "xterm"),
+    name = "tabs-xterm",
+    timeout = 10000
+  )
+  on.exit(app$stop(), add = TRUE)
+
+  term1 = "document.getElementById('terms-tabs-tab1-term-term')._shinyterm.term"
+  app$wait_for_js(paste(term1, "!= null"))
+  expect_true(app$get_js("typeof window.shinytermGhostterm === 'undefined'"))
+  app$wait_for_js(
+    "document.querySelector('#terms-tabs-tabset .shinytabs-tab[data-id=\"tab1\"] .shinyterm-status-running') != null",
+    timeout = 5000
+  )
+  app$run_js(paste0(term1, ".input('hello\\n', true)"))
+  app$wait_for_js(
+    paste0(term1, ".buffer.active.getLine(1).translateToString(true) === 'hello'"),
     timeout = 5000
   )
 })

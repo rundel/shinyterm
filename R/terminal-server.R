@@ -3,9 +3,9 @@
 #' Runs `command` inside a pseudo-terminal and connects it to the terminal
 #' element created by [terminal_ui()] with the same `id`. Keystrokes typed in
 #' the browser are written to the process and everything it prints is streamed
-#' back and rendered by xterm.js, so full-screen interactive programs (shells,
-#' editors, agent CLIs such as `claude` or `codex`) work as they would in a
-#' local terminal.
+#' back and rendered by the terminal emulator in the browser, so full-screen
+#' interactive programs (shells, editors, agent CLIs such as `claude` or
+#' `codex`) work as they would in a local terminal.
 #'
 #' The process is sized to the terminal's rows and columns at launch and
 #' resized (with `SIGWINCH`) whenever the client's size changes, so full-screen

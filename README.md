@@ -31,8 +31,10 @@
 >
 > You use this package entirely at your own risk.
 
-A terminal emulator for Shiny apps. `shinyterm` embeds an
-[xterm.js](https://xtermjs.org) terminal in the page and connects it to a
+A terminal emulator for Shiny apps. `shinyterm` embeds a
+[ghostterm](https://github.com/rundel/ghostterm) terminal (Ghostty's terminal
+emulation compiled to WebAssembly) or an [xterm.js](https://xtermjs.org)
+terminal in the page and connects it to a
 local process running inside a pseudo-terminal (via
 [processx](https://processx.r-lib.org)), so interactive command line programs,
 including shells and agent CLIs such as `claude` and `codex`, run inside a
@@ -153,6 +155,21 @@ terminal_ui("agent", theme = "light")
 terminal_ui("agent", options = list(theme = list(background = "#000000")))
 ```
 
+### Terminal emulator
+
+The default emulator is [ghostterm](https://github.com/rundel/ghostterm),
+which runs libghostty-vt, Ghostty's terminal emulation, as a WebAssembly
+module and draws it to a canvas behind an xterm.js-compatible API. It sends
+Shift+Enter as its own key (as `claude` and `codex` expect) and answers
+programs' colour and mode queries as Ghostty does. xterm.js 5.5.0 is bundled
+too; pass `emulator = "xterm"` to `terminal_ui()`, `terminal_app()`,
+`terminal_tabs_server()` or `terminal_tabs_app()` to use it instead. The
+`options` and palettes work the same with either.
+
+```r
+terminal_app("claude", emulator = "xterm")
+```
+
 ## Agent CLIs
 
 `claude_command()` and `codex_command()` build launch specifications that turn
@@ -186,9 +203,9 @@ wraps any other program.
 
 ## How it works
 
-- The browser side is a Shiny input binding around xterm.js. Keystrokes are
-  sent to the server as indexed chunks that are re-sent until acknowledged, so
-  Shiny's input batching can neither drop nor duplicate them.
+- The browser side is a Shiny input binding around ghostterm or xterm.js.
+  Keystrokes are sent to the server as indexed chunks that are re-sent until
+  acknowledged, so Shiny's input batching can neither drop nor duplicate them.
 - The server side polls a `processx::process` started with `pty = TRUE` every
   `interval` milliseconds (50 by default) on a `later::later()` timer, outside
   the reactive graph, and pushes output to the client with

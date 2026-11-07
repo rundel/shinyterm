@@ -1,18 +1,18 @@
-test_that("terminal_app relays typed input through the browser", {
+for (emulator in c("ghostterm", "xterm")) test_that(paste("terminal_app relays typed input through", emulator), {
   skip_on_cran()
   skip_on_os("windows")
   skip_if_not_installed("shinytest2")
   skip_if_not_installed("chromote")
 
   app = shinytest2::AppDriver$new(
-    terminal_app("cat"),
-    name = "cat",
+    terminal_app("cat", emulator = emulator),
+    name = paste0("cat-", emulator),
     timeout = 10000
   )
   on.exit(app$stop(), add = TRUE)
 
-  app$wait_for_js("document.getElementById('term-term')._shinyterm != null")
-  app$run_js("document.getElementById('term-term')._shinyterm.term.input('hello\\n')")
+  app$wait_for_js("document.getElementById('term-term')._shinyterm.term != null")
+  app$run_js("document.getElementById('term-term')._shinyterm.term.input('hello\\n', true)")
 
   app$wait_for_js(
     "document.getElementById('term-term')._shinyterm.term.buffer.active.getLine(1).translateToString(true) === 'hello'",
@@ -20,6 +20,10 @@ test_that("terminal_app relays typed input through the browser", {
   )
 
   expect_equal(app$get_text("#status .badge"), "running")
+  expect_equal(
+    app$get_js("document.getElementById('term-term').dataset.emulator"),
+    emulator
+  )
 
   app$click("restart")
   app$wait_for_js(

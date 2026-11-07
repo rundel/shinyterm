@@ -22,3 +22,8 @@
   background: var(--bs-success, #198754);
   opacity: 1;
 }
+
+.shinyterm:focus,
+.shinyterm:focus-visible {
+  outline: none;
+}

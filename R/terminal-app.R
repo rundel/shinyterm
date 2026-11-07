@@ -14,7 +14,7 @@
 #'
 #' @inheritParams terminal_server
 #' @param ... Passed on to [terminal_server()].
-#' @param options Passed on to [terminal_ui()].
+#' @param options,emulator Passed on to [terminal_ui()].
 #' @param mode Colour mode the app starts in, `"dark"` or `"light"`. `NULL`
 #'   (the default) follows the browser's preference.
 #'
@@ -32,9 +32,11 @@ terminal_app = function(
   args = character(),
   ...,
   options = list(),
+  emulator = c("ghostterm", "xterm"),
   mode = NULL
 ) {
   if (!is.null(mode)) mode = match.arg(mode, c("dark", "light"))
+  emulator = match.arg(emulator)
   spec = resolve_command(command, args)
   label = format(do.call(terminal_command, spec))
   server_args = list(...)
@@ -62,7 +64,7 @@ terminal_app = function(
       ),
       bslib::card_body(
         padding = 0,
-        terminal_ui("term", height = NULL, options = options)
+        terminal_ui("term", height = NULL, options = options, emulator = emulator)
       )
     )
   )

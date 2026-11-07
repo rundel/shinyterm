@@ -73,9 +73,9 @@ of raw output, control sequences included.}
 Runs \code{command} inside a pseudo-terminal and connects it to the terminal
 element created by \code{\link[=terminal_ui]{terminal_ui()}} with the same \code{id}. Keystrokes typed in
 the browser are written to the process and everything it prints is streamed
-back and rendered by xterm.js, so full-screen interactive programs (shells,
-editors, agent CLIs such as \code{claude} or \code{codex}) work as they would in a
-local terminal.
+back and rendered by the terminal emulator in the browser, so full-screen
+interactive programs (shells, editors, agent CLIs such as \code{claude} or
+\code{codex}) work as they would in a local terminal.
 }
 \details{
 The process is sized to the terminal's rows and columns at launch and

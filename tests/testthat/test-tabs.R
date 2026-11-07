@@ -108,7 +108,8 @@ test_that("terminal_tabs_ui wraps a tabset with the terminal dependencies", {
   expect_match(html, 'id="go"')
   expect_match(html, "No open terminals")
   deps = vapply(htmltools::findDependencies(ui), `[[`, "", "name")
-  expect_true(all(c("xterm", "shinyterm", "shinytabs") %in% deps))
+  expect_true(all(c("shinyterm", "shinytabs") %in% deps))
+  expect_false(any(c("ghostterm", "xterm") %in% deps))
 })
 
 test_that("the mode toggle is locked when any command is codex", {

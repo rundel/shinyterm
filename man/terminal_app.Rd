@@ -9,6 +9,7 @@ terminal_app(
   args = character(),
   ...,
   options = list(),
+  emulator = c("ghostterm", "xterm"),
   mode = NULL
 )
 }
@@ -22,7 +23,7 @@ given).}
 
 \item{...}{Passed on to \code{\link[=terminal_server]{terminal_server()}}.}
 
-\item{options}{Passed on to \code{\link[=terminal_ui]{terminal_ui()}}.}
+\item{options, emulator}{Passed on to \code{\link[=terminal_ui]{terminal_ui()}}.}
 
 \item{mode}{Colour mode the app starts in, \code{"dark"} or \code{"light"}. \code{NULL}
 (the default) follows the browser's preference.}

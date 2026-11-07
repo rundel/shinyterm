@@ -9,6 +9,7 @@ terminal_ui(
   height = "400px",
   options = list(),
   theme = c("auto", "dark", "light"),
+  emulator = c("ghostterm", "xterm"),
   ...
 )
 }
@@ -19,8 +20,9 @@ terminal_ui(
 \code{\link[htmltools:validateCssUnit]{htmltools::validateCssUnit()}} accepts). \code{NULL} makes the element a fill
 item that grows to fill a fillable parent such as a \code{\link[bslib:card_body]{bslib::card_body()}}.}
 
-\item{options}{Named list of xterm.js \code{ITerminalOptions} passed to the
-terminal constructor, e.g. \code{list(fontSize = 13)}. Colours given in
+\item{options}{Named list of terminal options (xterm.js
+\code{ITerminalOptions}, which ghostterm also accepts) passed to the terminal
+constructor, e.g. \code{list(fontSize = 13)}. Colours given in
 \code{options$theme} are layered over the palette chosen by \code{theme}, so
 \code{list(theme = list(background = "#1e1e1e"))} recolours the background
 while keeping the rest of the palette.}
@@ -31,6 +33,9 @@ Bootstrap colour mode (the \code{data-bs-theme} attribute set by
 live when it changes, and uses the dark palette on pages without one.
 \code{"dark"} and \code{"light"} fix the palette regardless of the page.}
 
+\item{emulator}{Terminal emulator running in the browser: \code{"ghostterm"}
+(the default) or \code{"xterm"} for xterm.js. See Details.}
+
 \item{...}{Additional attributes for the terminal \code{div}.}
 }
 \value{
@@ -40,7 +45,19 @@ An HTML tag list.
 Creates the terminal element for a \code{\link[=terminal_server]{terminal_server()}} module. The element
 sizes its rows and columns to fit its box, and re-fits when the box resizes.
 }
+\details{
+Two terminal emulators are bundled. The default, \code{"ghostterm"}, is
+\href{https://github.com/rundel/ghostterm}{ghostterm}: Ghostty's terminal
+emulation (libghostty-vt, compiled to WebAssembly) drawn to a canvas behind
+an xterm.js-compatible API. It tells Shift+Enter from Enter, as \code{claude}
+and \code{codex} expect, and answers programs' colour and mode queries as
+Ghostty does. \code{"xterm"} is \href{https://xtermjs.org}{xterm.js} 5.5.0, the
+long-established emulator used by VS Code; choose it if ghostterm
+misbehaves with a program or browser. Both accept the same \code{options} and
+palettes.
+}
 \examples{
 terminal_ui("shell")
 terminal_ui("shell", theme = "light", options = list(fontSize = 13))
+terminal_ui("shell", emulator = "xterm")
 }

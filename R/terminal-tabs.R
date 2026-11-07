@@ -13,9 +13,9 @@
 #' offer, say, a shell, a `claude` session confined to one project and a
 #' `codex` session confined to another.
 #'
-#' Because the terminals are created as tabs are opened, the xterm.js
-#' `options` and `theme` are arguments of `terminal_tabs_server()` rather than
-#' of the UI function.
+#' Because the terminals are created as tabs are opened, the terminal
+#' `options`, `theme` and `emulator` are arguments of `terminal_tabs_server()`
+#' rather than of the UI function.
 #'
 #' @inheritSection terminal_server Hosted deployments
 #'
@@ -34,7 +34,7 @@
 #'   `codex` when they are on the `PATH` (see [default_commands()]).
 #' @param initial The tabs to open when the session starts, as indices into
 #'   `commands` or their labels; `NULL` starts with no tabs.
-#' @param options,theme Passed to [terminal_ui()] for every terminal.
+#' @param options,theme,emulator Passed to [terminal_ui()] for every terminal.
 #' @param confirm_close Ask before closing a tab whose process is still
 #'   running. With `FALSE` the process is killed without confirmation.
 #' @param closeable,renameable,max_tabs Passed to
@@ -70,7 +70,7 @@ terminal_tabs_ui = function(id, height = NULL, controls = NULL, ...) {
   check_not_hosted()
   ns = shiny::NS(id)
   htmltools::tagList(
-    shinyterm_dependencies(),
+    shinyterm_dependencies(NULL),
     shinytabs::tabset_ui(
       ns("tabs"),
       height = height,
@@ -90,6 +90,7 @@ terminal_tabs_server = function(
   initial = 1,
   options = list(),
   theme = c("auto", "dark", "light"),
+  emulator = c("ghostterm", "xterm"),
   confirm_close = TRUE,
   closeable = TRUE,
   renameable = TRUE,
@@ -97,6 +98,7 @@ terminal_tabs_server = function(
 ) {
   check_not_hosted()
   theme = match.arg(theme)
+  emulator = match.arg(emulator)
   cmds = terminal_commands(commands)
   labels = names(cmds)
   initial = command_keys(initial, labels)
@@ -115,7 +117,7 @@ terminal_tabs_server = function(
       renameable = renameable,
       max_tabs = max_tabs,
       ui = function(id, type) {
-        terminal_ui(shiny::NS(id, "term"), height = NULL, options = options, theme = theme)
+        terminal_ui(shiny::NS(id, "term"), height = NULL, options = options, theme = theme, emulator = emulator)
       },
       server = function(input, output, session, type, tab) {
         term = do.call(terminal_server, c(list("term", cmds[[type]]), server_args))
@@ -178,9 +180,11 @@ terminal_tabs_app = function(
   ...,
   initial = 1,
   options = list(),
+  emulator = c("ghostterm", "xterm"),
   mode = NULL
 ) {
   if (!is.null(mode)) mode = match.arg(mode, c("dark", "light"))
+  emulator = match.arg(emulator)
   cmds = terminal_commands(commands)
   server_args = list(...)
   switchable = all(vapply(cmds, function(cmd) mode_switchable(cmd$command), TRUE))
@@ -205,7 +209,7 @@ terminal_tabs_app = function(
   server = function(input, output, session) {
     terms = do.call(
       terminal_tabs_server,
-      c(list("terms", cmds, initial = initial, options = options), server_args)
+      c(list("terms", cmds, initial = initial, options = options, emulator = emulator), server_args)
     )
 
     shiny::observe({

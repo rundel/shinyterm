@@ -10,6 +10,14 @@
 // custom messages carrying the element id, so output can be pushed from
 // outside a reactive flush; receiveMessage() also serves sendInputMessage().
 //
+// The terminal is ghostterm (libghostty-vt in WebAssembly) or xterm.js, chosen
+// by the element's data-emulator attribute. Both have the xterm.js API, so
+// the binding only differs in how it gets the Terminal and FitAddon classes.
+// ghostterm is an ES module loaded by ghostterm-loader.js and needs its
+// WebAssembly module compiled first, so its terminal is created
+// asynchronously: until then the input value is null (the server waits for a
+// size before starting the process) and server messages are queued.
+//
 // Colours come from a light or dark palette chosen by the element's
 // data-theme attribute. With "auto" the palette follows the page's Bootstrap
 // colour mode (the data-bs-theme attribute bslib's dark mode toggle sets on
@@ -85,6 +93,28 @@
     el.style.backgroundColor = theme.background;
   }
 
+  // The ghostterm classes, once ghostterm-loader.js has loaded them. The
+  // loader may run before or after this script.
+  function ghostterm() {
+    if (window.shinytermGhostterm) return window.shinytermGhostterm;
+    return new Promise(function (resolve) {
+      document.addEventListener(
+        "shinyterm:ghostterm",
+        function () {
+          resolve(window.shinytermGhostterm);
+        },
+        { once: true }
+      );
+    });
+  }
+
+  var emulators = {
+    ghostterm: ghostterm,
+    xterm: function () {
+      return { Terminal: Terminal, FitAddon: FitAddon.FitAddon };
+    }
+  };
+
   function sendChunks(st) {
     Shiny.setInputValue(
       st.id + "_data",
@@ -106,80 +136,42 @@
       opts.theme = resolveTheme(mode, userTheme);
       el.style.backgroundColor = opts.theme.background;
 
-      var term = new Terminal(
-        Object.assign(
-          { cursorBlink: true, scrollback: 5000, allowProposedApi: true },
-          opts
-        )
-      );
-      var fit = new FitAddon.FitAddon();
-      term.loadAddon(fit);
-      term.open(el);
-      fit.fit();
-
       var st = {
         id: el.id,
-        term: term,
-        fit: fit,
+        term: null,
+        fit: null,
         mode: mode,
         userTheme: userTheme,
         from: 0,
         chunks: [],
-        rows: term.rows,
-        cols: term.cols,
+        pending: [],
+        rows: null,
+        cols: null,
         seq: 0,
         callback: null
       };
       el._shinyterm = st;
 
-      term.onData(function (d) {
-        st.chunks.push(d);
-        sendChunks(st);
-      });
-
-      term.onResize(function (size) {
-        st.rows = size.rows;
-        st.cols = size.cols;
-        st.seq += 1;
-        if (st.callback) st.callback(false);
-      });
-
-      var refit = function () {
-        if (st.fitTimer) clearTimeout(st.fitTimer);
-        st.fitTimer = setTimeout(function () {
-          st.fitTimer = null;
-          fit.fit();
-        }, 50);
-      };
-      var ro = new ResizeObserver(refit);
-      ro.observe(el);
-      st.observer = ro;
-
-      if (mode === "auto") {
-        var mo = new MutationObserver(function () {
-          applyTheme(el, st);
-        });
-        mo.observe(document.documentElement, {
-          attributes: true,
-          attributeFilter: ["data-bs-theme"]
-        });
-        st.themeObserver = mo;
-      }
-
-      // The first fit can run before layout settles or the font loads; fit
-      // again once both are done so the process starts at the right size.
-      requestAnimationFrame(function () {
-        fit.fit();
-      });
-      if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(function () {
-          fit.fit();
-        });
+      var emulator = emulators[el.dataset.emulator] || emulators.ghostterm;
+      var lib = emulator();
+      if (typeof lib.then === "function") {
+        lib.then(
+          function (lib) {
+            open(el, st, lib, opts);
+            if (st.callback) st.callback(false);
+          },
+          function (err) {
+            console.error("shinyterm: could not load ghostterm", err);
+          }
+        );
+      } else {
+        open(el, st, lib, opts);
       }
     },
 
     getValue: function (el) {
       var st = el._shinyterm;
+      if (!st.term) return null;
       return { rows: st.rows, cols: st.cols, seq: st.seq };
     },
 
@@ -193,6 +185,10 @@
 
     receiveMessage: function (el, msg) {
       var st = el._shinyterm;
+      if (!st.term) {
+        st.pending.push(msg);
+        return;
+      }
       if (msg.write != null) st.term.write(msg.write);
       if (msg.ack != null) {
         var drop = msg.ack - st.from + 1;
@@ -210,6 +206,77 @@
       return { policy: "direct" };
     }
   });
+
+  // Creates the terminal in `el` from the emulator's classes, wires its
+  // events to the binding state `st` and replays queued server messages.
+  function open(el, st, lib, opts) {
+    var term = new lib.Terminal(
+      Object.assign(
+        { cursorBlink: true, scrollback: 5000, allowProposedApi: true },
+        opts
+      )
+    );
+    var fit = new lib.FitAddon();
+    term.loadAddon(fit);
+    term.open(el);
+    fit.fit();
+
+    st.term = term;
+    st.fit = fit;
+    st.rows = term.rows;
+    st.cols = term.cols;
+
+    term.onData(function (d) {
+      st.chunks.push(d);
+      sendChunks(st);
+    });
+
+    term.onResize(function (size) {
+      st.rows = size.rows;
+      st.cols = size.cols;
+      st.seq += 1;
+      if (st.callback) st.callback(false);
+    });
+
+    var refit = function () {
+      if (st.fitTimer) clearTimeout(st.fitTimer);
+      st.fitTimer = setTimeout(function () {
+        st.fitTimer = null;
+        fit.fit();
+      }, 50);
+    };
+    var ro = new ResizeObserver(refit);
+    ro.observe(el);
+    st.observer = ro;
+
+    if (st.mode === "auto") {
+      var mo = new MutationObserver(function () {
+        applyTheme(el, st);
+      });
+      mo.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-bs-theme"]
+      });
+      st.themeObserver = mo;
+    }
+
+    // The first fit can run before layout settles or the font loads; fit
+    // again once both are done so the process starts at the right size.
+    requestAnimationFrame(function () {
+      fit.fit();
+    });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () {
+        fit.fit();
+      });
+    }
+
+    var pending = st.pending;
+    st.pending = [];
+    pending.forEach(function (msg) {
+      binding.receiveMessage(el, msg);
+    });
+  }
 
   Shiny.inputBindings.register(binding, "shinyterm.terminal");
 

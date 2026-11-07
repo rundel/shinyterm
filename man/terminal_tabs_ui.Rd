@@ -15,6 +15,7 @@ terminal_tabs_server(
   initial = 1,
   options = list(),
   theme = c("auto", "dark", "light"),
+  emulator = c("ghostterm", "xterm"),
   confirm_close = TRUE,
   closeable = TRUE,
   renameable = TRUE,
@@ -26,6 +27,7 @@ terminal_tabs_app(
   ...,
   initial = 1,
   options = list(),
+  emulator = c("ghostterm", "xterm"),
   mode = NULL
 )
 }
@@ -49,7 +51,7 @@ given on its own. The default is the user's shell plus \code{claude} and
 \item{initial}{The tabs to open when the session starts, as indices into
 \code{commands} or their labels; \code{NULL} starts with no tabs.}
 
-\item{options, theme}{Passed to \code{\link[=terminal_ui]{terminal_ui()}} for every terminal.}
+\item{options, theme, emulator}{Passed to \code{\link[=terminal_ui]{terminal_ui()}} for every terminal.}
 
 \item{confirm_close}{Ask before closing a tab whose process is still
 running. With \code{FALSE} the process is killed without confirmation.}
@@ -100,9 +102,9 @@ controls, and \code{commands} can be whatever the app decides, so an app can
 offer, say, a shell, a \code{claude} session confined to one project and a
 \code{codex} session confined to another.
 
-Because the terminals are created as tabs are opened, the xterm.js
-\code{options} and \code{theme} are arguments of \code{terminal_tabs_server()} rather than
-of the UI function.
+Because the terminals are created as tabs are opened, the terminal
+\code{options}, \code{theme} and \code{emulator} are arguments of \code{terminal_tabs_server()}
+rather than of the UI function.
 }
 \section{Hosted deployments}{
 

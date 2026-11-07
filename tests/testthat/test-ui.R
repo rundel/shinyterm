@@ -7,8 +7,25 @@ test_that("terminal_ui builds a namespaced element with its dependencies", {
   expect_match(html, "height:300px")
   expect_match(html, 'data-options="\\{&quot;fontSize&quot;:13\\}"')
 
+  expect_match(html, 'data-emulator="ghostterm"')
+
+  deps = htmltools::findDependencies(ui)
+  expect_setequal(vapply(deps, `[[`, "", "name"), c("ghostterm", "shinyterm"))
+})
+
+test_that("terminal_ui uses xterm.js on request", {
+  ui = terminal_ui("shell", emulator = "xterm")
+  expect_match(as.character(ui), 'data-emulator="xterm"')
   deps = htmltools::findDependencies(ui)
   expect_setequal(vapply(deps, `[[`, "", "name"), c("xterm", "shinyterm"))
+  expect_error(terminal_ui("shell", emulator = "vt100"), "ghostterm")
+})
+
+test_that("the ghostterm dependency loads as a module and ships its wasm", {
+  dep = shinyterm_dependencies("ghostterm")[[1]]
+  expect_equal(dep$script, list(src = "ghostterm-loader.js", type = "module"))
+  dir = system.file("ghostterm", package = "shinyterm")
+  expect_true(all(file.exists(file.path(dir, c("ghostterm-loader.js", "ghostterm-slim.js", "ghostty-vt.wasm")))))
 })
 
 test_that("terminal_ui records the requested theme", {
