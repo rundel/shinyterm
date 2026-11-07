@@ -6,7 +6,7 @@
 #' terminal follows. Useful on its own and as a template for embedding a
 #' terminal in a larger app.
 #'
-#' Codex reads the terminal colours once at launch and keeps drawing its
+#' Codex reads the terminal colors once at launch and keeps drawing its
 #' composer with them, so switching mode while it runs leaves the composer
 #' unreadable. When `command` is `codex` the toggle is therefore disabled,
 #' with a tooltip saying why, and the app stays in its starting mode; use
@@ -15,7 +15,7 @@
 #' @inheritParams terminal_server
 #' @param ... Passed on to [terminal_server()].
 #' @param options,emulator Passed on to [terminal_ui()].
-#' @param mode Colour mode the app starts in, `"dark"` or `"light"`. `NULL`
+#' @param mode Color mode the app starts in, `"dark"` or `"light"`. `NULL`
 #'   (the default) follows the browser's preference.
 #'
 #' @return A [shiny::shinyApp()] object.
@@ -91,7 +91,7 @@ terminal_app = function(
 }
 
 # The light/dark mode toggle of the app wrappers, disabled (inert, dimmed,
-# with a tooltip saying why) when the colour mode must not change.
+# with a tooltip saying why) when the color mode must not change.
 #
 # mode: the starting mode, or NULL for the browser's preference
 # locked: whether switching is disabled
@@ -110,9 +110,9 @@ mode_toggle = function(mode, locked = FALSE) {
   )
 }
 
-# Whether the page's colour mode may change while `command` runs. Codex reads
-# the terminal colours once at launch (OSC 10/11) and never again, so a later
-# switch leaves its composer drawn in the old mode's colours.
+# Whether the page's color mode may change while `command` runs. Codex reads
+# the terminal colors once at launch (OSC 10/11) and never again, so a later
+# switch leaves its composer drawn in the old mode's colors.
 #
 # command: program name or path
 

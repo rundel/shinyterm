@@ -18,10 +18,10 @@
 // asynchronously: until then the input value is null (the server waits for a
 // size before starting the process) and server messages are queued.
 //
-// Colours come from a light or dark palette chosen by the element's
+// Colors come from a light or dark palette chosen by the element's
 // data-theme attribute. With "auto" the palette follows the page's Bootstrap
-// colour mode (the data-bs-theme attribute bslib's dark mode toggle sets on
-// <html>), falling back to dark when the page has none. Colours from the
+// color mode (the data-bs-theme attribute bslib's dark mode toggle sets on
+// <html>), falling back to dark when the page has none. Colors from the
 // user's options.theme are layered on top of the palette.
 (function () {
   if (typeof Shiny === "undefined") return;

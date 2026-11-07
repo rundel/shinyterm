@@ -54,7 +54,7 @@
 #'     \item{`tabs()`}{Reactive data frame of open tabs: `id`, `type` (the
 #'       command label) and `title`.}
 #'     \item{`selected()`}{Reactive id of the selected tab, `NULL` when none.}
-#'     \item{`commands`}{The normalised list of command specifications.}
+#'     \item{`commands`}{The normalized list of command specifications.}
 #'   }
 #' @export
 #' @examples
@@ -243,7 +243,7 @@ default_commands = function(wd = NULL) {
   cmds
 }
 
-# Normalises the `commands` of terminal_tabs_server() to a named list of
+# Normalizes the `commands` of terminal_tabs_server() to a named list of
 # shinyterm_command objects with unique labels as names.
 #
 # commands: a program, a shinyterm_command, or a list of either

@@ -40,7 +40,7 @@ overridden here.}
 terminal size. With \code{FALSE}, call the returned \code{start()} yourself.}
 
 \item{echo}{Whether the pseudo-terminal echoes input (the normal terminal
-behaviour; line-oriented programs rely on it).}
+behavior; line-oriented programs rely on it).}
 
 \item{strip_env}{Whether to drop inherited environment variables that would
 make the process believe it runs inside another tool. \code{TRUE} (the default)

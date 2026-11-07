@@ -22,13 +22,13 @@ item that grows to fill a fillable parent such as a \code{\link[bslib:card_body]
 
 \item{options}{Named list of terminal options (xterm.js
 \code{ITerminalOptions}, which ghostterm also accepts) passed to the terminal
-constructor, e.g. \code{list(fontSize = 13)}. Colours given in
+constructor, e.g. \code{list(fontSize = 13)}. Colors given in
 \code{options$theme} are layered over the palette chosen by \code{theme}, so
-\code{list(theme = list(background = "#1e1e1e"))} recolours the background
+\code{list(theme = list(background = "#1e1e1e"))} recolors the background
 while keeping the rest of the palette.}
 
-\item{theme}{Colour palette. \code{"auto"} (the default) follows the page's
-Bootstrap colour mode (the \code{data-bs-theme} attribute set by
+\item{theme}{Color palette. \code{"auto"} (the default) follows the page's
+Bootstrap color mode (the \code{data-bs-theme} attribute set by
 \code{\link[bslib:input_dark_mode]{bslib::input_dark_mode()}} and \code{\link[bslib:toggle_dark_mode]{bslib::toggle_dark_mode()}}), switching
 live when it changes, and uses the dark palette on pages without one.
 \code{"dark"} and \code{"light"} fix the palette regardless of the page.}
@@ -50,7 +50,7 @@ Two terminal emulators are bundled. The default, \code{"ghostterm"}, is
 \href{https://github.com/rundel/ghostterm}{ghostterm}: Ghostty's terminal
 emulation (libghostty-vt, compiled to WebAssembly) drawn to a canvas behind
 an xterm.js-compatible API. It tells Shift+Enter from Enter, as \code{claude}
-and \code{codex} expect, and answers programs' colour and mode queries as
+and \code{codex} expect, and answers programs' color and mode queries as
 Ghostty does. \code{"xterm"} is \href{https://xtermjs.org}{xterm.js} 5.5.0, the
 long-established emulator used by VS Code; choose it if ghostterm
 misbehaves with a program or browser. Both accept the same \code{options} and

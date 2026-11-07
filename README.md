@@ -80,7 +80,7 @@ server = function(input, output, session) {
   term = terminal_server("agent", "claude", wd = "~/project")
 
   # programmatic input, e.g. to seed a prompt
-  observe(term$write("Summarise this repository\r")) |> bindEvent(input$go)
+  observe(term$write("Summarize this repository\r")) |> bindEvent(input$go)
 }
 
 shinyApp(ui, server)
@@ -132,7 +132,7 @@ server = function(input, output, session) {
 
   observe({
     id = terms$add("Claude")
-    terms$terminal(id)$write("Summarise this repository\r")
+    terms$terminal(id)$write("Summarize this repository\r")
   }) |> bindEvent(input$go)
 }
 ```
@@ -140,14 +140,14 @@ server = function(input, output, session) {
 ### Light and dark mode
 
 The terminal ships with a light and a dark palette. By default
-(`theme = "auto"`) it follows the page's Bootstrap colour mode, so adding
+(`theme = "auto"`) it follows the page's Bootstrap color mode, so adding
 `bslib::input_dark_mode()` to the UI (or calling `bslib::toggle_dark_mode()`
 on the server) switches the terminal live; `terminal_app()` includes the
 toggle in its header and its `mode` argument picks the starting mode. Pages
-without a colour mode get the dark palette. Codex reads the terminal colours
+without a color mode get the dark palette. Codex reads the terminal colors
 once at launch and keeps them, so `terminal_app("codex")` disables the
 toggle (with a tooltip saying why) and stays in its starting mode.
-`theme = "light"` or `theme = "dark"` fixes the palette, and colours in
+`theme = "light"` or `theme = "dark"` fixes the palette, and colors in
 `options$theme` override individual entries of whichever palette is active:
 
 ```r
@@ -161,7 +161,7 @@ The default emulator is [ghostterm](https://github.com/rundel/ghostterm),
 which runs libghostty-vt, Ghostty's terminal emulation, as a WebAssembly
 module and draws it to a canvas behind an xterm.js-compatible API. It sends
 Shift+Enter as its own key (as `claude` and `codex` expect) and answers
-programs' colour and mode queries as Ghostty does. xterm.js 5.5.0 is bundled
+programs' color and mode queries as Ghostty does. xterm.js 5.5.0 is bundled
 too; pass `emulator = "xterm"` to `terminal_ui()`, `terminal_app()`,
 `terminal_tabs_server()` or `terminal_tabs_app()` to use it instead. The
 `options` and palettes work the same with either.

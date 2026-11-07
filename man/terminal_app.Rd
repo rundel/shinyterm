@@ -25,7 +25,7 @@ given).}
 
 \item{options, emulator}{Passed on to \code{\link[=terminal_ui]{terminal_ui()}}.}
 
-\item{mode}{Colour mode the app starts in, \code{"dark"} or \code{"light"}. \code{NULL}
+\item{mode}{Color mode the app starts in, \code{"dark"} or \code{"light"}. \code{NULL}
 (the default) follows the browser's preference.}
 }
 \value{
@@ -39,7 +39,7 @@ terminal follows. Useful on its own and as a template for embedding a
 terminal in a larger app.
 }
 \details{
-Codex reads the terminal colours once at launch and keeps drawing its
+Codex reads the terminal colors once at launch and keeps drawing its
 composer with them, so switching mode while it runs leaves the composer
 unreadable. When \code{command} is \code{codex} the toggle is therefore disabled,
 with a tooltip saying why, and the app stays in its starting mode; use

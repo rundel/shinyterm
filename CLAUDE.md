@@ -36,7 +36,7 @@ A Shiny input binding (`shinyterm.terminal`) wrapping one of two emulators with 
 
 Server to client traffic is a single `"shinyterm"` custom message type carrying the element id and any of `write`, `ack`, `clear`, `focus`, `stdin`. It goes through `sendCustomMessage()` (not `sendInputMessage()`) so output can be pushed outside a reactive flush.
 
-Colour palettes (light/dark) live in this file. With `data-theme="auto"` a `MutationObserver` on `<html data-bs-theme>` follows bslib's colour mode; user colours from `options$theme` are layered over the chosen palette.
+Color palettes (light/dark) live in this file. With `data-theme="auto"` a `MutationObserver` on `<html data-bs-theme>` follows bslib's color mode; user colors from `options$theme` are layered over the chosen palette.
 
 ### Server side: `R/terminal-server.R`
 
@@ -50,7 +50,7 @@ On unix the pty is resized live with `TIOCSWINSZ` on the master fd (obtained fro
 
 ### Tabbed terminals: `R/terminal-tabs.R`
 
-`terminal_tabs_ui()` / `terminal_tabs_server()` put one `terminal_server()` per tab inside a `shinytabs::tabset_server()` (the sister package in `../shinytabs`, declared in `Imports` with a `Remotes` entry). Each tab is a module instance named `tabN` under the tabset's `"tabs"` namespace, and the terminal module inside it is called `"term"`, so a terminal element's id is `<id>-tabs-tabN-term-term`; the tests depend on that. `commands` is normalised by `terminal_commands()` to a named list of `shinyterm_command`s whose labels double as the tabset's type keys. The tab-server callback uses shinytabs' optional fifth `tab` argument to learn its tab id, keeps a per-tab observer that sets the status-dot icon from `alive()`, and `on_close` destroys that observer and kills the process. `can_close` returns a confirmation message while the process is alive, which shinytabs turns into a modal. `terminal_tabs_app()` shares `mode_toggle()` with `terminal_app()` and locks the toggle when any command is codex.
+`terminal_tabs_ui()` / `terminal_tabs_server()` put one `terminal_server()` per tab inside a `shinytabs::tabset_server()` (the sister package in `../shinytabs`, declared in `Imports` with a `Remotes` entry). Each tab is a module instance named `tabN` under the tabset's `"tabs"` namespace, and the terminal module inside it is called `"term"`, so a terminal element's id is `<id>-tabs-tabN-term-term`; the tests depend on that. `commands` is normalized by `terminal_commands()` to a named list of `shinyterm_command`s whose labels double as the tabset's type keys. The tab-server callback uses shinytabs' optional fifth `tab` argument to learn its tab id, keeps a per-tab observer that sets the status-dot icon from `alive()`, and `on_close` destroys that observer and kills the process. `can_close` returns a confirmation message while the process is alive, which shinytabs turns into a modal. `terminal_tabs_app()` shares `mode_toggle()` with `terminal_app()` and locks the toggle when any command is codex.
 
 ### Command specifications: `R/commands.R`
 
@@ -58,7 +58,7 @@ On unix the pty is resized live with `TIOCSWINSZ` on the master fd (obtained fro
 
 ### App wrapper: `R/terminal-app.R`
 
-`terminal_app()` is a one-page `bslib` app around the module with a status badge, restart button and `bslib::input_dark_mode()` toggle. The toggle is disabled (via `inert`, with a tooltip) when the command is `codex`, because Codex reads terminal colours once at launch and does not re-read them.
+`terminal_app()` is a one-page `bslib` app around the module with a status badge, restart button and `bslib::input_dark_mode()` toggle. The toggle is disabled (via `inert`, with a tooltip) when the command is `codex`, because Codex reads terminal colors once at launch and does not re-read them.
 
 ## Conventions specific to this repo
 

@@ -46,7 +46,7 @@
 #' @param auto_start Launch the process as soon as the client reports the
 #'   terminal size. With `FALSE`, call the returned `start()` yourself.
 #' @param echo Whether the pseudo-terminal echoes input (the normal terminal
-#'   behaviour; line-oriented programs rely on it).
+#'   behavior; line-oriented programs rely on it).
 #' @param max_output Number of characters of raw output kept in the `output`
 #'   reactive.
 #'

@@ -5,7 +5,7 @@ clean_env = c(
 )
 consent = stats::setNames("yes, really", shinyterm:::consent_var)
 
-test_that("hosted_context recognises the hosting products", {
+test_that("hosted_context recognizes the hosting products", {
   expect_null(hosted_context(c(HOME = "/x")))
   expect_equal(hosted_context(c(SHINY_SERVER_VERSION = "1.5.22")), "Shiny Server")
   expect_equal(hosted_context(c(RSTUDIO_PRODUCT = "CONNECT")), "Posit Connect")

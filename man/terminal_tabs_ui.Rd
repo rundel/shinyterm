@@ -59,7 +59,7 @@ running. With \code{FALSE} the process is killed without confirmation.}
 \item{closeable, renameable, max_tabs}{Passed to
 \code{\link[shinytabs:tabset_server]{shinytabs::tabset_server()}}.}
 
-\item{mode}{Colour mode the app starts in, \code{"dark"} or \code{"light"}. \code{NULL}
+\item{mode}{Color mode the app starts in, \code{"dark"} or \code{"light"}. \code{NULL}
 (the default) follows the browser's preference.}
 }
 \value{
@@ -77,7 +77,7 @@ process is running unless \code{confirm = FALSE}.}
 \item{\code{tabs()}}{Reactive data frame of open tabs: \code{id}, \code{type} (the
 command label) and \code{title}.}
 \item{\code{selected()}}{Reactive id of the selected tab, \code{NULL} when none.}
-\item{\code{commands}}{The normalised list of command specifications.}
+\item{\code{commands}}{The normalized list of command specifications.}
 }
 
 \code{terminal_tabs_app()} returns a \code{\link[shiny:shinyApp]{shiny::shinyApp()}} object.

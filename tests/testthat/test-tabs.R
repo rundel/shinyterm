@@ -5,7 +5,7 @@ tick = function(session, times = 5) {
   }
 }
 
-test_that("terminal_commands normalises programs and specifications", {
+test_that("terminal_commands normalizes programs and specifications", {
   cmds = terminal_commands(list(Shell = "sh", claude_command(wd = "~"), "cat", "cat"))
   expect_s3_class(cmds[[1]], "shinyterm_command")
   expect_equal(names(cmds)[1:2], c("Shell", format(claude_command(wd = "~"))))

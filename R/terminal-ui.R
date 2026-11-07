@@ -7,7 +7,7 @@
 #' [ghostterm](https://github.com/rundel/ghostterm): Ghostty's terminal
 #' emulation (libghostty-vt, compiled to WebAssembly) drawn to a canvas behind
 #' an xterm.js-compatible API. It tells Shift+Enter from Enter, as `claude`
-#' and `codex` expect, and answers programs' colour and mode queries as
+#' and `codex` expect, and answers programs' color and mode queries as
 #' Ghostty does. `"xterm"` is [xterm.js](https://xtermjs.org) 5.5.0, the
 #' long-established emulator used by VS Code; choose it if ghostterm
 #' misbehaves with a program or browser. Both accept the same `options` and
@@ -19,12 +19,12 @@
 #'   item that grows to fill a fillable parent such as a [bslib::card_body()].
 #' @param options Named list of terminal options (xterm.js
 #'   `ITerminalOptions`, which ghostterm also accepts) passed to the terminal
-#'   constructor, e.g. `list(fontSize = 13)`. Colours given in
+#'   constructor, e.g. `list(fontSize = 13)`. Colors given in
 #'   `options$theme` are layered over the palette chosen by `theme`, so
-#'   `list(theme = list(background = "#1e1e1e"))` recolours the background
+#'   `list(theme = list(background = "#1e1e1e"))` recolors the background
 #'   while keeping the rest of the palette.
-#' @param theme Colour palette. `"auto"` (the default) follows the page's
-#'   Bootstrap colour mode (the `data-bs-theme` attribute set by
+#' @param theme Color palette. `"auto"` (the default) follows the page's
+#'   Bootstrap color mode (the `data-bs-theme` attribute set by
 #'   [bslib::input_dark_mode()] and [bslib::toggle_dark_mode()]), switching
 #'   live when it changes, and uses the dark palette on pages without one.
 #'   `"dark"` and `"light"` fix the palette regardless of the page.

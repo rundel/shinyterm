@@ -33,7 +33,7 @@ for (emulator in c("ghostterm", "xterm")) test_that(paste("terminal_app relays t
   expect_equal(app$get_text("#status .badge"), "running")
 })
 
-test_that("terminal_app follows the page colour mode", {
+test_that("terminal_app follows the page color mode", {
   skip_on_cran()
   skip_on_os("windows")
   skip_if_not_installed("shinytest2")
@@ -64,7 +64,7 @@ test_that("terminal_app follows the page colour mode", {
   )
 })
 
-test_that("a fixed theme ignores the page colour mode", {
+test_that("a fixed theme ignores the page color mode", {
   skip_on_cran()
   skip_on_os("windows")
   skip_if_not_installed("shinytest2")
@@ -97,7 +97,7 @@ test_that("terminal_app validates mode and detects codex", {
   expect_false(shinyterm:::mode_switchable("Codex.exe"))
 })
 
-test_that("terminal_app starts in the requested colour mode", {
+test_that("terminal_app starts in the requested color mode", {
   skip_on_cran()
   skip_on_os("windows")
   skip_if_not_installed("shinytest2")
