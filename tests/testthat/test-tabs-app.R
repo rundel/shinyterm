@@ -49,10 +49,13 @@ test_that("terminal_tabs_app opens, switches and closes terminals in the browser
     "hello"
   )
 
-  # Exited tabs close without asking; running ones ask
+  # Exited tabs close without asking; running ones ask. A closed tab's
+  # terminal is disposed.
+  app$run_js("window.closedTerm = document.getElementById('terms-tabs-tab2-term-term')")
   app$click(selector = "#terms-tabs-tabset .shinytabs-tab[data-id='tab2'] .shinytabs-tab-close")
   app$wait_for_js(paste(tab_count, "=== 1"))
   expect_null(app$get_js("document.getElementById('terms-tabs-tab2-term-term')"))
+  app$wait_for_js("window.closedTerm._shinyterm === null", timeout = 5000)
 
   app$click(selector = "#terms-tabs-tabset .shinytabs-tab[data-id='tab1'] .shinytabs-tab-close")
   app$wait_for_js("document.querySelector('#shiny-modal.show .modal-body') != null")

@@ -1,10 +1,10 @@
 // Shiny input binding for the shinyterm terminal element.
 //
 // The element's input value is its size ({rows, cols, seq}). Keystrokes are
-// sent separately as <id>_data events carrying every chunk the server has not
-// acknowledged yet, indexed from `from`, so chunks coalesced by Shiny's input
-// batching are never lost and chunks re-sent before an ack are never written
-// twice. The server talks back with messages carrying any of:
+// sent separately as <id>_data events carrying the chunks the server has not
+// acknowledged yet (up to a size cap, the rest following each ack), indexed
+// from `from`, so chunks coalesced by Shiny's input batching are never lost
+// and chunks re-sent before an ack are never written twice. The server talks back with messages carrying any of:
 // write (text to print), ack (last chunk index consumed), clear, focus and
 // stdin (enable/disable keyboard input). The server sends them as "shinyterm"
 // custom messages carrying the element id, so output can be pushed from
@@ -115,12 +115,67 @@
     }
   };
 
+  // Input sends carry at most this many characters of chunks; a paste larger
+  // than one chunk is split into pieces of this size first.
+  var SEND_CAP = 16384;
+
   function sendChunks(st) {
+    var chunks = [];
+    var size = 0;
+    for (var i = 0; i < st.chunks.length; i++) {
+      if (chunks.length && size + st.chunks[i].length > SEND_CAP) break;
+      chunks.push(st.chunks[i]);
+      size += st.chunks[i].length;
+    }
+    st.sentTo = st.from + chunks.length;
     Shiny.setInputValue(
       st.id + "_data",
-      { from: st.from, chunks: st.chunks.slice() },
+      { from: st.from, chunks: chunks },
       { priority: "event" }
     );
+  }
+
+  // Splits `d` into pieces of at most SEND_CAP characters without separating
+  // the halves of a surrogate pair.
+  function splitChunk(d) {
+    if (d.length <= SEND_CAP) return [d];
+    var out = [];
+    var i = 0;
+    while (i < d.length) {
+      var end = Math.min(i + SEND_CAP, d.length);
+      var c = d.charCodeAt(end - 1);
+      if (end < d.length && c >= 0xd800 && c <= 0xdbff) end -= 1;
+      out.push(d.slice(i, end));
+      i = end;
+    }
+    return out;
+  }
+
+  // Shows why the terminal could not be created in place of the terminal.
+  function showError(el, text) {
+    var box = document.createElement("div");
+    box.className = "shinyterm-error";
+    box.textContent = text;
+    el.replaceChildren(box);
+  }
+
+  // Releases a terminal whose element has left the page: its observers,
+  // timers and the emulator itself (ghostterm's WebAssembly state included).
+  function dispose(el) {
+    var st = el._shinyterm;
+    if (!st) return;
+    st.disposed = true;
+    if (st.fitTimer) clearTimeout(st.fitTimer);
+    if (st.observer) st.observer.disconnect();
+    if (st.themeObserver) st.themeObserver.disconnect();
+    if (st.term) {
+      try {
+        st.term.dispose();
+      } catch (e) {}
+    }
+    st.term = null;
+    st.callback = null;
+    el._shinyterm = null;
   }
 
   $.extend(binding, {
@@ -129,6 +184,9 @@
     },
 
     initialize: function (el) {
+      // Rebinding an element that is still set up (Shiny unbinds and binds
+      // again when inputs are re-scanned) keeps its terminal.
+      if (el._shinyterm) return;
       var opts = {};
       if (el.dataset.options) opts = JSON.parse(el.dataset.options);
       var mode = el.dataset.theme || "auto";
@@ -143,6 +201,7 @@
         mode: mode,
         userTheme: userTheme,
         from: 0,
+        sentTo: 0,
         chunks: [],
         pending: [],
         rows: null,
@@ -157,11 +216,18 @@
       if (typeof lib.then === "function") {
         lib.then(
           function (lib) {
+            if (st.disposed) return;
             open(el, st, lib, opts);
             if (st.callback) st.callback(false);
           },
           function (err) {
             console.error("shinyterm: could not load ghostterm", err);
+            showError(
+              el,
+              "shinyterm could not load the ghostterm terminal emulator " +
+                "(details in the browser console). " +
+                'Try emulator = "xterm".'
+            );
           }
         );
       } else {
@@ -171,20 +237,27 @@
 
     getValue: function (el) {
       var st = el._shinyterm;
-      if (!st.term) return null;
+      if (!st || !st.term) return null;
       return { rows: st.rows, cols: st.cols, seq: st.seq };
     },
 
     subscribe: function (el, callback) {
-      el._shinyterm.callback = callback;
+      if (el._shinyterm) el._shinyterm.callback = callback;
     },
 
+    // Shiny unbinds an element both when it is removed (a closed tab, a
+    // re-rendered uiOutput) and before re-scanning; only the first frees it.
     unsubscribe: function (el) {
+      if (!el._shinyterm) return;
       el._shinyterm.callback = null;
+      setTimeout(function () {
+        if (!el.isConnected) dispose(el);
+      }, 0);
     },
 
     receiveMessage: function (el, msg) {
       var st = el._shinyterm;
+      if (!st) return;
       if (!st.term) {
         st.pending.push(msg);
         return;
@@ -196,6 +269,8 @@
           st.chunks.splice(0, drop);
           st.from += drop;
         }
+        // Chunks beyond the size cap of the last send go out now.
+        if (st.from + st.chunks.length > st.sentTo) sendChunks(st);
       }
       if (msg.clear) st.term.reset();
       if (msg.stdin != null) st.term.options.disableStdin = !msg.stdin;
@@ -227,7 +302,7 @@
     st.cols = term.cols;
 
     term.onData(function (d) {
-      st.chunks.push(d);
+      Array.prototype.push.apply(st.chunks, splitChunk(d));
       sendChunks(st);
     });
 

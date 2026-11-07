@@ -27,3 +27,10 @@
 .shinyterm:focus-visible {
   outline: none;
 }
+
+.shinyterm-error {
+  color: #f14c4c;
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
