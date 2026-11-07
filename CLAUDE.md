@@ -73,5 +73,5 @@ On unix the pty is resized live with `TIOCSWINSZ` on the master fd (obtained fro
 - Assignment uses `=`, not `<-`. Functions from other packages are always called as `pkg::fun()`; nothing is imported into the namespace except the `useDynLib` directive.
 - Internal helpers carry a short comment block above them describing purpose and arguments instead of roxygen; exported functions use full roxygen with markdown.
 - The vendored xterm.js build in `inst/xterm/` is pinned in `R/dependencies.R` (`version = "5.5.0"`); update both together.
-- The vendored ghostterm build is `dist/ghostterm-slim.js` and `dist/ghostty-vt.wasm` from `../ghostterm` (`bun run build`), plus its `LICENSE`; the slim bundle fetches the wasm from next to itself. Its version is pinned in `R/dependencies.R`; update both together.
-- ghostterm's `term.input(data)` does not fire `onData` unless its second argument is `true` (xterm.js defaults to `true`), so the browser tests pass `true` explicitly.
+- The vendored ghostterm build is `dist/ghostterm-slim.js` and `dist/ghostty-vt.wasm` from `../ghostterm` (`bun run build`), plus its `LICENSE`; the slim bundle fetches the wasm from next to itself. Its version is pinned in `R/dependencies.R`; update both together, and bump it (with a `.9000` suffix for an unreleased build) whenever the files change so browsers don't keep a cached copy.
+- ghostterm's `term.input(data)` fires `onData` by default, as in xterm.js (ghostterm 0.0.2 needed a second argument of `true`, which the browser tests still pass).

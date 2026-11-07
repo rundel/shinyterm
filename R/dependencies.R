@@ -20,7 +20,7 @@ shinyterm_dependencies = function(emulator = "ghostterm") {
     emulator,
     ghostterm = htmltools::htmlDependency(
       name = "ghostterm",
-      version = "0.0.2",
+      version = "0.0.2.9000",
       src = c(file = "ghostterm"),
       package = "shinyterm",
       script = list(src = "ghostterm-loader.js", type = "module"),
