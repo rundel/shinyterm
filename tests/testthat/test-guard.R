@@ -107,3 +107,25 @@ test_that("the banner wraps and boxes its text", {
   expect_match(b, "REFUSES TO RUN HERE")
   expect_match(b, "yes, really", fixed = TRUE)
 })
+
+test_that("token_app() adds the tokenized launch and keeps the app's onStart", {
+  expect_match(terminal_token(), "^[0-9a-f]{48}$")
+  expect_null(terminal_token(FALSE))
+  expect_equal(terminal_token("abc"), "abc")
+
+  started = FALSE
+  app = shiny::shinyApp("x", function(input, output, session) NULL, onStart = function() started <<- TRUE)
+  expect_identical(token_app(app, NULL), app)
+
+  tokened = token_app(app, "abc")
+  expect_true(is.function(tokened$options$launch.browser))
+  expect_message(tokened$onStart(), "shinyterm_token=abc")
+  expect_true(started)
+
+  opened = NULL
+  withr::local_options(shiny.launch.browser = function(url) opened <<- url)
+  tokened$options$launch.browser("http://127.0.0.1:1/")
+  expect_equal(opened, "http://127.0.0.1:1/?shinyterm_token=abc")
+
+  expect_error(token_app("not an app", "abc"))
+})

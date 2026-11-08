@@ -98,24 +98,58 @@ terminal_app = function(
       shiny::bindEvent(input$restart)
   }
 
-  token_app(ui, server, token)
+  token_app(shiny::shinyApp(ui, server), token)
 }
 
-# shinyApp() for the app wrappers: with a token, the browser opens at the
-# tokenized URL and the token is printed when the app starts.
-#
-# token: the access token, or NULL
+#' Protect an app with a terminal access token
+#'
+#' A terminal module only starts its process for a page whose URL carries the
+#' module's `token` (see "Hosted deployments" in [terminal_server()]).
+#' `terminal_token()` makes a random token from the operating system's
+#' generator (so [set.seed()] neither predicts nor is disturbed by it), and
+#' `token_app()` makes a [shiny::shinyApp()] object open the browser at the
+#' tokenized URL (`?shinyterm_token=<token>`) and print the token when it
+#' starts. Pass the same token to every [terminal_server()] or
+#' [terminal_tabs_server()] in the app. [terminal_app()] and
+#' [terminal_tabs_app()] do all of this themselves.
+#'
+#' The tokenized URL is used when the app is launched with the default
+#' `launch.browser` of [shiny::runApp()]; passing `launch.browser`
+#' explicitly opens the plain URL, and the token must then be added by hand.
+#'
+#' @param token For `terminal_token()`, `TRUE` makes a new random token, a
+#'   non-empty string is used as is, and `FALSE` or `NULL` give `NULL` (no
+#'   token). For `token_app()`, the token, or `NULL` to return `app`
+#'   unchanged.
+#' @param app A [shiny::shinyApp()] object.
+#' @return `terminal_token()` returns the token as a string, or `NULL`.
+#'   `token_app()` returns `app` with its launch options set.
+#' @export
+#' @examples
+#' token = terminal_token()
+#' if (interactive()) {
+#'   ui = bslib::page_fillable(terminal_tabs_ui("terms"))
+#'   server = function(input, output, session) {
+#'     terminal_tabs_server("terms", token = token)
+#'   }
+#'   shiny::runApp(token_app(shiny::shinyApp(ui, server), token))
+#' }
+terminal_token = function(token = TRUE) {
+  resolve_token(token)
+}
 
-token_app = function(ui, server, token) {
-  if (is.null(token)) return(shiny::shinyApp(ui, server))
-  shiny::shinyApp(
-    ui,
-    server,
-    onStart = function() {
-      message("shinyterm: the app URL needs ?", token_param, "=", token)
-    },
-    options = token_app_options(token)
-  )
+#' @rdname terminal_token
+#' @export
+token_app = function(app, token) {
+  stopifnot(inherits(app, "shiny.appobj"))
+  if (is.null(token)) return(app)
+  on_start = app$onStart
+  app$onStart = function() {
+    if (is.function(on_start)) on_start()
+    message("shinyterm: the app URL needs ?", token_param, "=", token)
+  }
+  app$options = utils::modifyList(as.list(app$options), token_app_options(token))
+  app
 }
 
 # The light/dark mode toggle of the app wrappers, disabled (inert, dimmed,

@@ -224,7 +224,7 @@ terminal_tabs_app = function(
       shiny::bindEvent(input$restart)
   }
 
-  token_app(ui, server, token)
+  token_app(shiny::shinyApp(ui, server), token)
 }
 
 #' Default commands for a terminal tabset
