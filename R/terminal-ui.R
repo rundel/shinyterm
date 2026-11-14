@@ -8,7 +8,7 @@
 #' emulation (libghostty-vt, compiled to WebAssembly) drawn to a canvas behind
 #' an xterm.js-compatible API. It tells Shift+Enter from Enter, as `claude`
 #' and `codex` expect, and answers programs' color and mode queries as
-#' Ghostty does. `"xterm"` is [xterm.js](https://xtermjs.org) 5.5.0, the
+#' Ghostty does. `"xterm"` is [xterm.js](https://xtermjs.org) 6.0.0, the
 #' long-established emulator used by VS Code; choose it if ghostterm
 #' misbehaves with a program or browser. Both accept the same `options` and
 #' palettes.

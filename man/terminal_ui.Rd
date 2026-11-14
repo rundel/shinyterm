@@ -51,7 +51,7 @@ Two terminal emulators are bundled. The default, \code{"ghostterm"}, is
 emulation (libghostty-vt, compiled to WebAssembly) drawn to a canvas behind
 an xterm.js-compatible API. It tells Shift+Enter from Enter, as \code{claude}
 and \code{codex} expect, and answers programs' color and mode queries as
-Ghostty does. \code{"xterm"} is \href{https://xtermjs.org}{xterm.js} 5.5.0, the
+Ghostty does. \code{"xterm"} is \href{https://xtermjs.org}{xterm.js} 6.0.0, the
 long-established emulator used by VS Code; choose it if ghostterm
 misbehaves with a program or browser. Both accept the same \code{options} and
 palettes.

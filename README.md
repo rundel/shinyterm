@@ -167,10 +167,13 @@ The default emulator is [ghostterm](https://github.com/rundel/ghostterm),
 which runs libghostty-vt, Ghostty's terminal emulation, as a WebAssembly
 module and draws it to a canvas behind an xterm.js-compatible API. It sends
 Shift+Enter as its own key (as `claude` and `codex` expect) and answers
-programs' color and mode queries as Ghostty does. xterm.js 5.5.0 is bundled
+programs' color and mode queries as Ghostty does. xterm.js 6.0.0 is bundled
 too; pass `emulator = "xterm"` to `terminal_ui()`, `terminal_app()`,
 `terminal_tabs_server()` or `terminal_tabs_app()` to use it instead. The
-`options` and palettes work the same with either.
+`options` and palettes work the same with either. Since xterm.js 6,
+Alt/Option+arrow keys send the standard `ESC [1;3D`-style sequences rather
+than word-movement keys; bind them in your shell (e.g. `bindkey
+'\e[1;3D' backward-word` in zsh) if you want word jumps.
 
 ```r
 terminal_app("claude", emulator = "xterm")

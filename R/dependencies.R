@@ -28,7 +28,7 @@ shinyterm_dependencies = function(emulator = "ghostterm") {
     ),
     xterm = htmltools::htmlDependency(
       name = "xterm",
-      version = "5.5.0",
+      version = "6.0.0",
       src = c(file = "xterm"),
       package = "shinyterm",
       script = c("xterm.js", "addon-fit.js"),
